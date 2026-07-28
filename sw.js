@@ -5,7 +5,7 @@
 // serving those from a cache would show the crew a stale fire.
 //
 // Bump CACHE when shipping changes so clients pick them up.
-const CACHE = 'f3-campfire-v5';
+const CACHE = 'f3-campfire-v6';
 
 // Relative so this works under a project subpath (GitHub Pages) as well as at
 // a domain root (Firebase Hosting).
@@ -19,6 +19,7 @@ const SHELL = [
   './js/config.js',
   './js/constellations.js',
   './js/editor.js',
+  './js/demo.js',
   './manifest.webmanifest',
   './icons/icon-192.png',
   './icons/icon-512.png',

@@ -3,7 +3,7 @@
 
 import { isConfigured } from './config.js';
 import { createSky } from './sky.js';
-import { constellationFor, shapeByKey, STARS_PER_CONSTELLATION } from './constellations.js';
+import { constellationFor, shapeByKey, lightingOrder, STARS_PER_CONSTELLATION } from './constellations.js';
 import { openDrawEditor, isValidShape } from './editor.js';
 
 const $ = (id) => document.getElementById(id);
@@ -31,6 +31,7 @@ const els = {
   memberCard: $('memberCard'), memberClose: $('memberClose'),
   mcPhoto: $('mcPhoto'), mcName: $('mcName'), mcSub: $('mcSub'), mcGoals: $('mcGoals'),
   helpModal: $('helpModal'), helpClose: $('helpClose'),
+  demoBar: $('demoBar'),
   toast: $('toast'),
 };
 
@@ -51,6 +52,7 @@ const state = {
 };
 
 let sky = null;
+let dockObserver = null;
 let unsubMembers = null;
 let unsubGoals = null;
 let db = null;             // ./data.js module, imported lazily after config check
@@ -99,7 +101,13 @@ function crewIdFromHash() {
   return m ? m[1] : null;
 }
 
+/** #demo loads a fake mid-season crew from js/demo.js instead of Firebase. */
+function isDemo() {
+  return location.hash === '#demo';
+}
+
 function crewLink(crewId) {
+  if (isDemo()) return `${location.origin}${location.pathname}#demo`;
   return `${location.origin}${location.pathname}#c/${crewId}`;
 }
 
@@ -194,20 +202,23 @@ function achievedInOrder(goals) {
 }
 
 /**
- * One goal, one star: the Nth goal a man finishes lights the Nth star. Past
- * ten his constellation is already full — extra goals still feed the fire,
- * they just have nowhere left to land.
+ * One goal, one star: the Nth goal a man finishes lights the Nth star along
+ * the shape's own lines, so the creature builds up connected rather than as
+ * scattered points. Past ten his constellation is already full — extra goals
+ * still feed the fire, they just have nowhere left to land.
  */
-function starForNthAchieved(n) {
-  return n < STARS_PER_CONSTELLATION ? n : -1;
+function starForNthAchieved(shape, n) {
+  if (n >= STARS_PER_CONSTELLATION) return -1;
+  const order = lightingOrder(shape);
+  return order[n] ?? -1;
 }
 
 /** Star indices a member has earned, minus any ember still in flight. */
-function litFor(uid, goals) {
+function litFor(uid, goals, shape) {
   const lit = new Set();
   const flying = state.pending.get(uid);
   achievedInOrder(goals).forEach((g, i) => {
-    const star = starForNthAchieved(i);
+    const star = starForNthAchieved(shape, i);
     if (star < 0 || flying?.has(star)) return;
     lit.add(star);
   });
@@ -228,7 +239,7 @@ function refreshSky() {
     const done = goals.filter((g) => g.achieved).length;
     openLogs += goals.length - done;
     achieved += done;
-    const lit = litFor(m.uid, goals);
+    const lit = litFor(m.uid, goals, shape);
     return {
       uid: m.uid,
       f3Name: m.f3Name || m.displayName || 'Pax',
@@ -272,10 +283,11 @@ function fireNewEmbers() {
 
   for (const m of state.members) {
     const goals = byMember.get(m.uid) || [];
+    const shape = shapeFor(m);
     achievedInOrder(goals).forEach((g, i) => {
       nextSeen.add(g.id);
       if (!state.bootstrapped || state.achievedSeen.has(g.id)) return;
-      const star = starForNthAchieved(i);
+      const star = starForNthAchieved(shape, i);
       launches.push({
         uid: m.uid, f3Name: m.f3Name, goal: g,
         stars: star < 0 ? [] : [star],   // past ten there's no star left to light
@@ -308,6 +320,21 @@ function fireNewEmbers() {
   }
 
   if (launches.length) refreshSky();
+}
+
+// ── dock ───────────────────────────────────────────────────────────────────
+/** Keep the fire clear of the dock, which grows and shrinks with the list. */
+function syncDockInset() {
+  if (!sky) return;
+  const visible = els.dock.classList.contains('collapsed')
+    ? 46
+    : els.dock.getBoundingClientRect().height;
+  sky.setInsets(visible);
+}
+
+function setDockCollapsed(collapsed) {
+  els.dock.classList.toggle('collapsed', collapsed);
+  syncDockInset();
 }
 
 // ── goal list rendering ────────────────────────────────────────────────────
@@ -476,6 +503,9 @@ function startCrewListeners() {
     if (!state.bootstrapped) {
       state.bootstrapped = true;
       state.achievedSeen = new Set(goals.filter((g) => g.achieved).map((g) => g.id));
+      // Arriving with goals already set, the sky is the point — tuck the dock
+      // away. Arriving with none, the dock is the point: leave it open.
+      setDockCollapsed(goals.some((g) => g.uid === state.user?.uid));
     }
   });
 }
@@ -485,6 +515,11 @@ function enterCrew() {
   els.topbar.hidden = false;
   els.dock.hidden = false;
   els.crewName.textContent = state.crew?.name || 'The fire';
+  if (isDemo()) {
+    els.demoBar.hidden = false;
+    els.signOutBtn.textContent = 'Exit demo';
+    $('signOutBtn2').textContent = 'Exit demo';
+  }
 
   if (!sky) {
     sky = createSky($('sky'));
@@ -492,16 +527,9 @@ function enterCrew() {
       if (uid) showMemberCard(uid);
       else els.memberCard.hidden = true;
     });
-    // Keep the fire clear of the dock as it grows with the goal list.
-    const syncInset = () => {
-      const visible = els.dock.classList.contains('collapsed')
-        ? 46
-        : els.dock.getBoundingClientRect().height;
-      sky.setInsets(visible);
-    };
-    new ResizeObserver(syncInset).observe(els.dock);
-    els.dockHandle.addEventListener('click', () => setTimeout(syncInset, 300));
-    syncInset();
+    dockObserver = new ResizeObserver(syncDockInset);
+    dockObserver.observe(els.dock);
+    syncDockInset();
   }
   startCrewListeners();
   refreshSky();
@@ -744,7 +772,7 @@ els.helpModal.addEventListener('click', (e) => {
 });
 
 els.dockHandle.addEventListener('click', () => {
-  els.dock.classList.toggle('collapsed');
+  setDockCollapsed(!els.dock.classList.contains('collapsed'));
 });
 
 window.addEventListener('hashchange', () => {
@@ -962,6 +990,17 @@ function registerServiceWorker() {
 (async function boot() {
   registerServiceWorker();
   setupInstall();
+
+  if (isDemo()) {
+    showLoading();
+    db = await import('./demo.js');
+    document.body.classList.add('is-demo');
+    db.watchAuth((u) => {
+      state.user = u;
+      attachCrew(db.DEMO_CREW_ID);
+    });
+    return;
+  }
 
   if (!isConfigured()) {
     fail(

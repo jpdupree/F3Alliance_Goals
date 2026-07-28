@@ -24,6 +24,7 @@ js/constellations.js  the 25 shapes, and F3-name → shape matching
 js/sky.js             canvas renderer: fire, logs, embers, constellations
 js/app.js             app flow, state, and the goal list
 js/editor.js          connect-the-dots constellation editor
+js/demo.js            fake mid-season crew for #demo, no Firebase involved
 firestore.rules       who can read and write what
 firebase.json         hosting + rules config for the Firebase CLI
 manifest.webmanifest  installable-app metadata
@@ -175,6 +176,14 @@ the sky.
 star.** The Nth goal a man knocks down lights the Nth star, in the order he
 actually finished them.
 
+Stars light along the shape's own lines — `lightingOrder()` walks the edge graph
+depth-first — so every star after the first is joined to one already lit. That
+matters most at half done: lighting them in array order leaves a bull as two
+disconnected horn tips, whereas walking the edges leaves a connected
+half-animal that still reads as an animal. Every built-in shape is checked to
+be one connected figure; a drawn shape with stars joined to nothing lights those
+last.
+
 That makes the season the same length for everybody. Complete means ten
 achievements — not "everything you happened to write down", which would have
 rewarded whoever set the fewest goals.
@@ -185,6 +194,18 @@ it just has no star left to land on. `STARS_PER_CONSTELLATION` in
 `js/constellations.js` is the single source of truth — the built-in shapes, the
 editor and `firestore.rules` all key off it, and the module logs an error on
 load if any shape has the wrong star count.
+
+## Demo mode
+
+Open the app with `#demo` on the end of the URL — `…/F3Alliance_Goals/#demo` —
+and you get a made-up crew of ten pax about half way through a season: a few
+dead on five stars, one finished, one barely started. Handy for showing someone
+what it looks like, or for judging a change without a real crew.
+
+`js/demo.js` mirrors the module surface of `js/data.js` with everything held in
+memory, so the sky, the dock, the member card and Manage crew all behave exactly
+as they do for real. It never touches Firebase, nothing is saved, and a reload
+puts it back to the same starting point. Sign out becomes **Exit demo**.
 
 ## Managing the crew
 

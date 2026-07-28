@@ -193,21 +193,26 @@ const SHAPES = {
     stars: [
       [0.18, 0.16], [0.82, 0.16],                // head top
       [0.18, 0.34], [0.82, 0.34],                // head bottom
-      [0.50, 0.34], [0.50, 0.56], [0.50, 0.78], [0.50, 0.94],
-      [0.38, 0.94], [0.62, 0.94],
+      [0.50, 0.34],                              // where the handle meets it
+      [0.50, 0.56], [0.50, 0.78], [0.50, 0.94],
+      [0.38, 0.94], [0.62, 0.94],                // grip
     ],
-    edges: [[0,1],[0,2],[1,3],[2,3],[4,5],[5,6],[6,7],[7,8],[7,9]],
+    // The head's bottom runs 2–4–3 rather than 2–3, so the handle is joined to
+    // the head instead of floating beside it.
+    edges: [[0,1],[0,2],[1,3],[2,4],[4,3],[4,5],[5,6],[6,7],[7,8],[7,9]],
   },
   anchor: {
     label: 'the anchor',
     stars: [
-      [0.50, 0.06], [0.50, 0.22],                // ring, shank top
-      [0.28, 0.28], [0.72, 0.28],                // stock
-      [0.50, 0.50], [0.50, 0.70],                // shank
-      [0.24, 0.66], [0.12, 0.86],                // left fluke
-      [0.76, 0.66], [0.88, 0.86],                // right fluke
+      [0.50, 0.06], [0.50, 0.26],                // ring, stock centre
+      [0.24, 0.26], [0.76, 0.26],                // stock arms
+      [0.50, 0.52], [0.50, 0.72],                // shank
+      [0.24, 0.68], [0.12, 0.88],                // left fluke
+      [0.76, 0.68], [0.88, 0.88],                // right fluke
     ],
-    edges: [[0,1],[2,3],[1,4],[4,5],[5,6],[6,7],[5,8],[8,9]],
+    // The stock crosses *through* the shank (2–1–3) so the whole thing is one
+    // connected figure and lights up as one.
+    edges: [[0,1],[2,1],[1,3],[1,4],[4,5],[5,6],[6,7],[5,8],[8,9]],
   },
   axe: {
     label: 'the axe',
@@ -336,6 +341,47 @@ export function constellationFor(f3Name) {
   const key = shapeKeyFor(f3Name);
   const shape = SHAPES[key];
   return { key, label: shape.label, stars: shape.stars, edges: shape.edges };
+}
+
+/**
+ * The order a shape's stars light up in.
+ *
+ * Walks the shape along its own lines (depth-first from the first star), so
+ * every star after the first is joined to one already lit. That matters a lot
+ * at half done: lighting them in definition order leaves a bull as two
+ * disconnected horn tips, whereas walking the edges leaves a connected
+ * half-animal that still reads as an animal.
+ *
+ * Memoized per shape object — the built-ins are constants and a drawn shape is
+ * re-created only when it's edited.
+ */
+const orderCache = new WeakMap();
+
+export function lightingOrder(shape) {
+  const hit = orderCache.get(shape);
+  if (hit) return hit;
+
+  const n = shape.stars.length;
+  const adj = Array.from({ length: n }, () => []);
+  for (const [a, b] of shape.edges) {
+    if (a < n && b < n && a !== b) { adj[a].push(b); adj[b].push(a); }
+  }
+  for (const list of adj) list.sort((x, y) => x - y);
+
+  const seen = new Set();
+  const order = [];
+  const walk = (i) => {
+    if (seen.has(i)) return;
+    seen.add(i);
+    order.push(i);
+    for (const j of adj[i]) walk(j);
+  };
+  walk(0);
+  // A drawn shape can have stars joined to nothing; they come last.
+  for (let i = 0; i < n; i++) if (!seen.has(i)) order.push(i);
+
+  orderCache.set(shape, order);
+  return order;
 }
 
 export function shapeByKey(key) {

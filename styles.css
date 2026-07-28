@@ -454,3 +454,22 @@ ol.help-list li { padding-left: 4px; }
   background: linear-gradient(180deg, #ffd08a, #ff9a34);
   border-color: rgba(255, 210, 150, .8);
 }
+
+/* ── demo mode ───────────────────────────────────────────────────────── */
+.demo-bar {
+  position: fixed;
+  left: 50%;
+  top: calc(64px + env(safe-area-inset-top, 0px));
+  transform: translateX(-50%);
+  z-index: 8;
+  max-width: calc(100vw - 32px);
+  text-align: center;
+  font-size: 12px;
+  color: var(--ink-dim);
+  background: rgba(12, 16, 28, .8);
+  backdrop-filter: blur(10px);
+  border: 1px dashed rgba(150, 175, 220, .28);
+  border-radius: 999px;
+  padding: 6px 14px;
+  pointer-events: none;
+}
