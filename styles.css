@@ -160,7 +160,6 @@ body { overflow: hidden; }
   background: rgba(255, 255, 255, 0.08);
 }
 #goalTitle { flex: 1 1 220px; }
-#goalTarget { flex: 0 1 130px; }
 
 .goal-list { list-style: none; margin: 0; padding: 0; max-height: 34vh; overflow-y: auto; }
 .goal {
@@ -171,7 +170,6 @@ body { overflow: hidden; }
 .goal:first-child { border-top: none; }
 .goal-body { flex: 1; min-width: 0; }
 .goal-title { font-size: 14px; line-height: 1.35; word-break: break-word; }
-.goal-target { font-size: 11.5px; color: var(--ink-faint); margin-top: 2px; }
 .goal.done .goal-title { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: rgba(255, 170, 90, .5); }
 
 .check {

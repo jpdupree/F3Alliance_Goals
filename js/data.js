@@ -4,8 +4,8 @@
 //   crews/{crewId}                     { name, createdBy, createdAt }
 //   crews/{crewId}/members/{uid}       { uid, f3Name, displayName, photoURL,
 //                                        shapeKey, joinedAt }
-//   crews/{crewId}/goals/{goalId}      { uid, title, target, createdAt,
-//                                        achieved, achievedAt, order }
+//   crews/{crewId}/goals/{goalId}      { uid, title, order, createdAt,
+//                                        achieved, achievedAt }
 //
 // Ownership is the uid field on each doc, and firestore.rules is what actually
 // enforces it — this module just keeps the UI honest.
@@ -174,13 +174,12 @@ export function watchGoals(crewId, cb) {
   );
 }
 
-export function addGoal(crewId, { title, target, order }) {
+export function addGoal(crewId, { title, order }) {
   const user = auth.currentUser;
   if (!user) throw new Error('not signed in');
   return addDoc(collection(db, 'crews', crewId, 'goals'), {
     uid: user.uid,
     title: title.trim().slice(0, 80),
-    target: (target || '').trim().slice(0, 24),
     order,
     achieved: false,
     achievedAt: null,

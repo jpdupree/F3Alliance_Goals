@@ -62,7 +62,6 @@ ROSTER.forEach(([uid, f3Name, total, done], mi) => {
       id,
       uid,
       title: GOALS[(mi * 3 + i) % GOALS.length],
-      target: i % 3 === 0 ? 'end of season' : '',
       order: i,
       achieved: i < done,
       // Spread the achievements out so the stars light in a believable order.
@@ -108,9 +107,9 @@ export function watchGoals(_crewId, cb) {
   return () => {};
 }
 
-export async function addGoal(_crewId, { title, target, order }) {
+export async function addGoal(_crewId, { title, order }) {
   const id = `demo-new-${++seq}`;
-  goals.set(id, { id, uid: ME, title, target, order, achieved: false, achievedAt: null });
+  goals.set(id, { id, uid: ME, title, order, achieved: false, achievedAt: null });
   emitGoals();
 }
 

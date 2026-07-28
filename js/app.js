@@ -17,7 +17,7 @@ const els = {
   topbar: $('topbar'), crewName: $('crewName'), crewSub: $('crewSub'),
   shareBtn: $('shareBtn'), signOutBtn: $('signOutBtn'), helpBtn: $('helpBtn'),
   dock: $('dock'), dockHandle: $('dockHandle'), dockTally: $('dockTally'),
-  goalForm: $('goalForm'), goalTitle: $('goalTitle'), goalTarget: $('goalTarget'),
+  goalForm: $('goalForm'), goalTitle: $('goalTitle'),
   goalList: $('goalList'), goalEmpty: $('goalEmpty'),
   drawOwnBtn: $('drawOwnBtn'), mcEditShape: $('mcEditShape'),
   drawModal: $('drawModal'), drawCanvas: $('drawCanvas'), drawTitle: $('drawTitle'),
@@ -378,12 +378,6 @@ function renderMyGoals() {
     title.className = 'goal-title';
     title.textContent = g.title;
     body.appendChild(title);
-    if (g.target) {
-      const t = document.createElement('div');
-      t.className = 'goal-target';
-      t.textContent = g.target;
-      body.appendChild(t);
-    }
 
     const del = document.createElement('button');
     del.className = 'trash';
@@ -439,7 +433,7 @@ function showMemberCard(uid) {
     mark.className = 'mc-mark';
     mark.textContent = g.achieved ? '★' : '·';
     const txt = document.createElement('span');
-    txt.textContent = g.title + (g.target ? ` — ${g.target}` : '');
+    txt.textContent = g.title;
     li.append(mark, txt);
     els.mcGoals.appendChild(li);
   }
@@ -689,15 +683,12 @@ els.goalForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   const title = els.goalTitle.value.trim();
   if (!title) return;
-  const target = els.goalTarget.value.trim();
   els.goalTitle.value = '';
-  els.goalTarget.value = '';
   try {
-    await db.addGoal(state.crewId, { title, target, order: Date.now() });
+    await db.addGoal(state.crewId, { title, order: Date.now() });
   } catch (err) {
     toast(errText(err));
     els.goalTitle.value = title;
-    els.goalTarget.value = target;
   }
 });
 
