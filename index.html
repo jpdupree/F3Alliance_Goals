@@ -47,7 +47,7 @@
     <div class="dock-head">
       <div>
         <h2 id="dockTitle">Your logs on the fire</h2>
-        <p class="dock-sub" id="dockSub">Every goal you set is a log. Hit it, and an ember takes its place in the sky.</p>
+        <p class="dock-sub" id="dockSub">Every goal you set is a log. Hit it, and an ember lights one of your ten stars.</p>
       </div>
       <div class="dock-tally" id="dockTally"></div>
     </div>
@@ -136,11 +136,12 @@
     <h2>How the fire works</h2>
     <ul class="help-list">
       <li><b>Every goal is a log.</b> Add one and it lands on the shared pile at the center of the fire.</li>
-      <li><b>Hit it and it burns.</b> Mark a goal achieved and an ember floats up out of the flames and locks into a star in your constellation.</li>
+      <li><b>Hit it and it burns.</b> Mark a goal achieved and an ember floats up out of the flames and locks into the next star in your constellation — one goal, one star.</li>
       <li><b>Your constellation is yours.</b> It's picked from your F3 name — Crawdad gets a crawfish, Bulldozer gets something with more shoulders.</li>
-      <li><b>Finish everything you set</b> and the whole creature lights up over the fire.</li>
+      <li><b>Ten stars, ten goals.</b> Every constellation has exactly ten stars, so the season is the same length for everybody. Light all ten and your creature is complete.</li>
       <li><b>The fire is the crew's.</b> The more the group knocks down over the season, the higher it burns.</li>
     </ul>
+    <p class="help-fine">Set as many goals as you like — the first ten you finish are the ones that light your sky. Anything past that still feeds the fire.</p>
     <p class="help-fine">Anyone with the link can sign in and join. You can only add, edit, or delete your own goals — that's enforced on the server, not just in the page.</p>
     <p class="help-fine">Tap a constellation to see whose it is. Tap the sky to pull back.</p>
     <p class="help-fine">Hit <b>Install</b> up top to put the campfire on your home screen — it opens full screen and remembers your crew.</p>
@@ -176,8 +177,9 @@
     <button class="close" id="drawClose" aria-label="Close">×</button>
     <h2 id="drawTitle">Draw your constellation</h2>
     <p class="help-fine draw-hint">
-      Tap the sky to place a star — it joins to the one you had selected. Tap a
-      star to select it, tap a second to join or unjoin them, drag to move one.
+      Place exactly ten stars — one for each goal you'll knock down. Tap the sky
+      to add one and it joins to the star you had selected; tap a star to select
+      it, tap a second to join or unjoin them, drag to move one.
     </p>
     <canvas id="drawCanvas"></canvas>
     <div class="draw-bar">

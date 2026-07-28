@@ -2,8 +2,8 @@
 // the "only your own stuff" rule visible in the UI (the server enforces it).
 
 import { isConfigured } from './config.js';
-import { createSky, starsForGoal } from './sky.js';
-import { constellationFor, shapeByKey } from './constellations.js';
+import { createSky } from './sky.js';
+import { constellationFor, shapeByKey, STARS_PER_CONSTELLATION } from './constellations.js';
 import { openDrawEditor, isValidShape } from './editor.js';
 
 const $ = (id) => document.getElementById(id);
@@ -178,16 +178,38 @@ function goalsByMember() {
   return map;
 }
 
+/**
+ * A man's achieved goals in the order he actually knocked them down, since
+ * that's the order the stars light in. Goals still waiting on the server for
+ * their achievedAt sort last, which is where they belong anyway.
+ */
+function achievedInOrder(goals) {
+  return goals
+    .filter((g) => g.achieved)
+    .sort((a, b) => {
+      const ta = a.achievedAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
+      const tb = b.achievedAt?.toMillis?.() ?? Number.MAX_SAFE_INTEGER;
+      return ta - tb || (a.order || 0) - (b.order || 0);
+    });
+}
+
+/**
+ * One goal, one star: the Nth goal a man finishes lights the Nth star. Past
+ * ten his constellation is already full — extra goals still feed the fire,
+ * they just have nowhere left to land.
+ */
+function starForNthAchieved(n) {
+  return n < STARS_PER_CONSTELLATION ? n : -1;
+}
+
 /** Star indices a member has earned, minus any ember still in flight. */
-function litFor(uid, goals, starCount) {
+function litFor(uid, goals) {
   const lit = new Set();
   const flying = state.pending.get(uid);
-  goals.forEach((g, i) => {
-    if (!g.achieved) return;
-    for (const s of starsForGoal(i, goals.length, starCount)) {
-      if (flying?.has(s)) continue;
-      lit.add(s);
-    }
+  achievedInOrder(goals).forEach((g, i) => {
+    const star = starForNthAchieved(i);
+    if (star < 0 || flying?.has(star)) return;
+    lit.add(star);
   });
   return lit;
 }
@@ -206,7 +228,7 @@ function refreshSky() {
     const done = goals.filter((g) => g.achieved).length;
     openLogs += goals.length - done;
     achieved += done;
-    const lit = litFor(m.uid, goals, starCount);
+    const lit = litFor(m.uid, goals);
     return {
       uid: m.uid,
       f3Name: m.f3Name || m.displayName || 'Pax',
@@ -215,7 +237,7 @@ function refreshSky() {
       customShape: shape.custom ? { stars: shape.stars, edges: shape.edges, label: shape.label } : null,
       starCount,
       litStars: lit,
-      complete: goals.length > 0 && done === goals.length && lit.size === starCount,
+      complete: lit.size >= starCount,
       goalsTotal: goals.length,
       goalsAchieved: done,
       shapeLabel: shape.label,
@@ -225,8 +247,10 @@ function refreshSky() {
 
   sky.setState(rows, { openLogs, achieved });
 
+  // The fire tracks every achievement; the sky only has ten slots per man.
+  const starsLit = rows.reduce((n, r) => n + r.litStars.size, 0);
   els.crewSub.textContent =
-    `${state.members.length} pax · ${openLogs} log${openLogs === 1 ? '' : 's'} burning · ${achieved} lit`;
+    `${state.members.length} pax · ${openLogs} log${openLogs === 1 ? '' : 's'} burning · ${starsLit} star${starsLit === 1 ? '' : 's'} lit`;
 
   for (const row of rows) {
     if (row.complete && !state.celebrated.has(row.uid)) {
@@ -248,12 +272,14 @@ function fireNewEmbers() {
 
   for (const m of state.members) {
     const goals = byMember.get(m.uid) || [];
-    const starCount = shapeFor(m).stars.length;
-    goals.forEach((g, i) => {
-      if (!g.achieved) return;
+    achievedInOrder(goals).forEach((g, i) => {
       nextSeen.add(g.id);
       if (!state.bootstrapped || state.achievedSeen.has(g.id)) return;
-      launches.push({ uid: m.uid, f3Name: m.f3Name, goal: g, stars: starsForGoal(i, goals.length, starCount) });
+      const star = starForNthAchieved(i);
+      launches.push({
+        uid: m.uid, f3Name: m.f3Name, goal: g,
+        stars: star < 0 ? [] : [star],   // past ten there's no star left to light
+      });
     });
   }
 
@@ -293,8 +319,9 @@ function renderMyGoals() {
   els.goalList.innerHTML = '';
   els.goalEmpty.hidden = mine.length > 0;
 
-  const done = mine.filter((g) => g.achieved).length;
-  els.dockTally.textContent = mine.length ? `${done} / ${mine.length}` : '';
+  const lit = Math.min(mine.filter((g) => g.achieved).length, STARS_PER_CONSTELLATION);
+  els.dockTally.textContent = mine.length ? `${lit} / ${STARS_PER_CONSTELLATION} ★` : '';
+  els.dockTally.classList.toggle('full', lit >= STARS_PER_CONSTELLATION);
 
   for (const g of mine) {
     const li = document.createElement('li');
@@ -359,8 +386,9 @@ function showMemberCard(uid) {
   const shape = shapeFor(m);
 
   els.mcName.textContent = m.f3Name || m.displayName || 'Pax';
+  const lit = Math.min(done, STARS_PER_CONSTELLATION);
   els.mcSub.textContent = goals.length
-    ? `${done} of ${goals.length} lit · ${shape.label}`
+    ? `${lit} of ${STARS_PER_CONSTELLATION} stars · ${shape.label}`
     : `no logs yet · ${shape.label}`;
   if (m.photoURL) {
     els.mcPhoto.src = m.photoURL;
@@ -781,7 +809,9 @@ function renderAdmin() {
     sub.className = 'admin-sub';
     const joined = m.joinedAt?.toDate?.();
     sub.textContent = [
-      goals.length ? `${done} of ${goals.length} lit` : 'no logs',
+      goals.length
+        ? `${Math.min(done, STARS_PER_CONSTELLATION)} of ${STARS_PER_CONSTELLATION} stars · ${goals.length} log${goals.length === 1 ? '' : 's'}`
+        : 'no logs',
       shapeFor(m).label,
       joined ? `joined ${joined.toLocaleDateString()}` : null,
     ].filter(Boolean).join(' · ');

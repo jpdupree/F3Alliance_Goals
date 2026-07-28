@@ -142,7 +142,8 @@ creature picked by hashing the name, so it's stable: the same name always draws
 the same shape.
 
 To add a shape, add an entry to `SHAPES` (stars in a 0..1 box, edges between
-them, head at the top) and a row to `KEYWORDS`. Aim for 9–14 stars.
+them, head at the top) and a row to `KEYWORDS`. It must have **exactly ten
+stars** — see How goals map to stars.
 
 ### Drawing your own
 
@@ -150,6 +151,10 @@ Anyone who doesn't like what his name picked can draw his own. There's a
 **…or draw your own constellation** link on the F3-name step, and an **Edit my
 constellation** button on your own card once you're in — tap a constellation
 in the sky to open it.
+
+A drawn constellation must be **exactly ten stars**, same as the built-in ones,
+so its owner is on the same season as everyone else. The editor counts down
+("7 of 10 stars · 3 to place") and won't let you save until you're at ten.
 
 The editor is connect-the-dots: tap empty sky to drop a star (it joins to
 whichever star was selected), tap a star to select it, tap a second to join or
@@ -159,17 +164,27 @@ lit. **Use the automatic one** reverts to the name-picked shape at any time.
 
 The drawing is normalized into the same 0..1 box the built-in shapes use, so
 the renderer treats it identically — same embers, same goal-to-star mapping,
-same completion. It's stored as `customShape` on your member doc, capped at 20
-stars and 40 lines both in the editor and in `firestore.rules`, and a shape
+same completion. It's stored as `customShape` on your member doc, fixed at ten
+stars and capped at 40 lines both in the editor and in `firestore.rules`, and a shape
 that fails validation falls back to the automatic one rather than blanking out
 the sky.
 
 ### How goals map to stars
 
-Goals are spread evenly across the constellation, so a guy with 3 goals still
-lights his whole creature and a guy with 30 still gets an ember per goal. Hit
-everything you set and every star is lit — that's what "complete" means, not
-some fixed number of goals.
+**Every constellation has exactly ten stars, and one finished goal lights one
+star.** The Nth goal a man knocks down lights the Nth star, in the order he
+actually finished them.
+
+That makes the season the same length for everybody. Complete means ten
+achievements — not "everything you happened to write down", which would have
+rewarded whoever set the fewest goals.
+
+Set as many goals as you like. The first ten you finish light your sky;
+anything past that still burns on the fire and counts toward the crew's total,
+it just has no star left to land on. `STARS_PER_CONSTELLATION` in
+`js/constellations.js` is the single source of truth — the built-in shapes, the
+editor and `firestore.rules` all key off it, and the module logs an error on
+load if any shape has the wrong star count.
 
 ## Managing the crew
 

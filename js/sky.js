@@ -690,7 +690,7 @@ export function createSky(canvas) {
         ctx.fillStyle = `rgba(180,194,222,${0.6 * dim})`;
         const sub = m.complete
           ? `${m.shape.label} — lit`
-          : `${m.goalsAchieved}/${m.goalsTotal} · ${m.shape.label}`;
+          : `${litCount}/${m.points.length} · ${m.shape.label}`;
         ctx.fillText(sub, m.box.x + m.box.w / 2, m.box.y + m.box.h + fs * 2.4);
       }
     }
@@ -805,19 +805,4 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.arcTo(x, y + h, x, y, rr);
   ctx.arcTo(x, y, x + w, y, rr);
   ctx.closePath();
-}
-
-/**
- * Which stars belong to goal #i of n, for a constellation with s stars.
- * Spreads the goals evenly across the shape so a guy with three goals still
- * finishes his whole creature, and a guy with thirty still gets one ember per
- * goal. Deterministic — no state needed.
- */
-export function starsForGoal(i, n, s) {
-  if (n <= 0 || s <= 0) return [];
-  const start = Math.floor((i * s) / n);
-  const end = Math.max(Math.floor(((i + 1) * s) / n), start + 1);
-  const out = [];
-  for (let k = start; k < Math.min(end, s); k++) out.push(k);
-  return out.length ? out : [Math.min(start, s - 1)];
 }

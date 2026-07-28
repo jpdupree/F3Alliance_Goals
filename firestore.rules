@@ -50,15 +50,15 @@ service cloud.firestore {
         allow read: if isMember(crewId) || request.auth.uid == memberId;
 
         // A hand-drawn constellation is user-controlled data, so bound it here
-        // as well as in the editor. Absent or null is fine — that means "use
-        // the shape his F3 name picked".
+        // as well as in the editor. Exactly ten stars — one per goal — is what
+        // keeps everyone on the same season. Absent or null is fine; that means
+        // "use the shape his F3 name picked".
         function shapeOk() {
           return !('customShape' in request.resource.data)
                  || request.resource.data.customShape == null
                  || (
                       request.resource.data.customShape.stars is list
-                      && request.resource.data.customShape.stars.size() >= 3
-                      && request.resource.data.customShape.stars.size() <= 20
+                      && request.resource.data.customShape.stars.size() == 10
                       && request.resource.data.customShape.edges is list
                       && request.resource.data.customShape.edges.size() <= 40
                       && (!('label' in request.resource.data.customShape)

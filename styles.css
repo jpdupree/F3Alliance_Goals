@@ -447,3 +447,10 @@ ol.help-list li { padding-left: 4px; }
   .admin-row { flex-wrap: wrap; }
   .admin-acts { width: 100%; justify-content: flex-end; }
 }
+
+.draw-count.ready { color: var(--ember); font-weight: 600; }
+.dock-tally.full {
+  color: #2a1608;
+  background: linear-gradient(180deg, #ffd08a, #ff9a34);
+  border-color: rgba(255, 210, 150, .8);
+}

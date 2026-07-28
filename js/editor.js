@@ -5,8 +5,11 @@
 // result is normalized into the same 0..1 box the built-in shapes use, so the
 // renderer can't tell the difference.
 
-export const MAX_STARS = 20;
-export const MIN_STARS = 3;
+import { STARS_PER_CONSTELLATION } from './constellations.js';
+
+// Every constellation is exactly ten stars — one per goal — so a drawn one has
+// to be ten too, or its owner would be on a different season to everyone else.
+export const REQUIRED_STARS = STARS_PER_CONSTELLATION;
 export const MAX_EDGES = 40;
 export const MAX_LABEL = 24;
 
@@ -36,7 +39,7 @@ export function normalizeShape(stars) {
 export function isValidShape(shape) {
   if (!shape || !Array.isArray(shape.stars) || !Array.isArray(shape.edges)) return false;
   const n = shape.stars.length;
-  if (n < MIN_STARS || n > MAX_STARS) return false;
+  if (n !== REQUIRED_STARS) return false;
   if (shape.edges.length > MAX_EDGES) return false;
   for (const s of shape.stars) {
     if (!Array.isArray(s) || s.length !== 2) return false;
@@ -169,13 +172,16 @@ export function openDrawEditor(els, { stars = [], edges = [], label = '', f3Name
       ctx.fillStyle = 'rgba(158,176,204,.6)';
       ctx.font = '500 13px ui-sans-serif, system-ui, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('Tap to place your first star', w / 2, h / 2);
+      ctx.fillText(`Tap to place your first star — ${REQUIRED_STARS} in all`, w / 2, h / 2);
       ctx.textAlign = 'left';
     }
 
-    els.drawCount.textContent =
-      `${pts.length} star${pts.length === 1 ? '' : 's'} · ${links.length} line${links.length === 1 ? '' : 's'}`;
-    els.drawSave.disabled = pts.length < MIN_STARS;
+    const left = REQUIRED_STARS - pts.length;
+    els.drawCount.textContent = left > 0
+      ? `${pts.length} of ${REQUIRED_STARS} stars · ${left} to place`
+      : `${REQUIRED_STARS} stars · ${links.length} line${links.length === 1 ? '' : 's'}`;
+    els.drawCount.classList.toggle('ready', left === 0);
+    els.drawSave.disabled = pts.length !== REQUIRED_STARS;
     els.drawRemove.disabled = selected === null;
     els.drawUndo.disabled = !history.length;
 
@@ -224,7 +230,7 @@ export function openDrawEditor(els, { stars = [], edges = [], label = '', f3Name
       return;
     }
 
-    if (pts.length >= MAX_STARS) return;
+    if (pts.length >= REQUIRED_STARS) return;
     const r = canvas.getBoundingClientRect();
     const w = toWorld(e.clientX - r.left, e.clientY - r.top);
     snapshot();
@@ -254,7 +260,7 @@ export function openDrawEditor(els, { stars = [], edges = [], label = '', f3Name
   const onClear = () => { snapshot(); pts = []; links = []; selected = null; };
   const onAuto = () => finish('auto');
   const onSave = () => {
-    if (pts.length < MIN_STARS) return;
+    if (pts.length !== REQUIRED_STARS) return;
     finish({
       stars: normalizeShape(pts.map((p) => [p.x, p.y])),
       edges: links.slice(0, MAX_EDGES),
