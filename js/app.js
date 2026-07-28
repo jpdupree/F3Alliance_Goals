@@ -18,6 +18,8 @@ const els = {
   dock: $('dock'), dockHandle: $('dockHandle'), dockTally: $('dockTally'),
   goalForm: $('goalForm'), goalTitle: $('goalTitle'), goalTarget: $('goalTarget'),
   goalList: $('goalList'), goalEmpty: $('goalEmpty'),
+  installBtn: $('installBtn'), installModal: $('installModal'),
+  installClose: $('installClose'), installLede: $('installLede'), installSteps: $('installSteps'),
   memberCard: $('memberCard'), memberClose: $('memberClose'),
   mcPhoto: $('mcPhoto'), mcName: $('mcName'), mcSub: $('mcSub'), mcGoals: $('mcGoals'),
   helpModal: $('helpModal'), helpClose: $('helpClose'),
@@ -512,6 +514,10 @@ els.googleBtn.addEventListener('click', async () => {
 });
 
 els.signOutBtn.addEventListener('click', () => db.signOut());
+$('signOutBtn2').addEventListener('click', () => {
+  els.helpModal.hidden = true;
+  db.signOut();
+});
 
 els.crewForm.addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -603,8 +609,97 @@ document.addEventListener('keydown', (e) => {
   if (!els.memberCard.hidden) { els.memberCard.hidden = true; sky?.clearFocus(); }
 });
 
+// ── install / PWA ──────────────────────────────────────────────────────────
+export function isStandalone() {
+  return matchMedia('(display-mode: standalone)').matches ||
+         matchMedia('(display-mode: minimal-ui)').matches ||
+         navigator.standalone === true;
+}
+
+function setupInstall() {
+  let deferred = null;
+
+  // Chrome/Edge/Android hand us the prompt to fire later.
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferred = e;
+    els.installBtn.hidden = false;
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferred = null;
+    els.installBtn.hidden = true;
+    toast('Installed. The fire is on your home screen.');
+  });
+
+  const ua = navigator.userAgent;
+  const iOS = /iPad|iPhone|iPod/.test(ua) ||
+              (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const firefox = /Firefox/.test(ua);
+
+  // Safari and Firefox never fire beforeinstallprompt, so offer instructions
+  // instead of hiding the option entirely.
+  if (!isStandalone() && (iOS || firefox)) els.installBtn.hidden = false;
+
+  els.installBtn.addEventListener('click', async () => {
+    if (deferred) {
+      deferred.prompt();
+      const { outcome } = await deferred.userChoice;
+      deferred = null;
+      if (outcome === 'accepted') els.installBtn.hidden = true;
+      return;
+    }
+    const steps = iOS
+      ? ['Tap the Share button in Safari’s toolbar.',
+         'Scroll down and tap <b>Add to Home Screen</b>.',
+         'Tap <b>Add</b>. The campfire lands on your home screen.']
+      : firefox
+        ? ['Open the browser menu (⋮).',
+           'Tap <b>Install</b> or <b>Add to Home screen</b>.',
+           'Confirm, and the campfire lands on your home screen.']
+        : ['Open your browser’s menu.',
+           'Choose <b>Install app</b> or <b>Add to Home screen</b>.'];
+    els.installLede.textContent = iOS
+      ? 'Safari can add F3 Campfire to your home screen — it opens full screen, like any other app.'
+      : 'Your browser can add F3 Campfire to your home screen — it opens full screen, like any other app.';
+    els.installSteps.innerHTML = '';
+    for (const s of steps) {
+      const li = document.createElement('li');
+      li.innerHTML = s;
+      els.installSteps.appendChild(li);
+    }
+    els.installModal.hidden = false;
+  });
+
+  els.installClose.addEventListener('click', () => { els.installModal.hidden = true; });
+  els.installModal.addEventListener('click', (e) => {
+    if (e.target === els.installModal) els.installModal.hidden = true;
+  });
+}
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  // Relative URL so the scope covers a project subpath on GitHub Pages.
+  navigator.serviceWorker.register('sw.js').then((reg) => {
+    reg.addEventListener('updatefound', () => {
+      const sw = reg.installing;
+      if (!sw) return;
+      sw.addEventListener('statechange', () => {
+        // A previous worker was in control, so this is an update, not a
+        // first install — tell the user rather than swapping under them.
+        if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+          toast('New version ready — reopen to update.');
+        }
+      });
+    });
+  }).catch(() => { /* offline support is a bonus; never block the app */ });
+}
+
 // ── boot ───────────────────────────────────────────────────────────────────
 (async function boot() {
+  registerServiceWorker();
+  setupInstall();
+
   if (!isConfigured()) {
     fail(
       'This copy isn’t pointed at a Firebase project yet. Paste your web app config into js/config.js, deploy firestore.rules, and reload. Setup steps are in README.md.',

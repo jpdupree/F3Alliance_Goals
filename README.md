@@ -25,6 +25,9 @@ js/sky.js             canvas renderer: fire, logs, embers, constellations
 js/app.js             app flow, state, and the goal list
 firestore.rules       who can read and write what
 firebase.json         hosting + rules config for the Firebase CLI
+manifest.webmanifest  installable-app metadata
+sw.js                 service worker: offline shell, never caches live data
+icons/                app icons (192/512, maskable, apple-touch)
 ```
 
 ## Setup
@@ -46,25 +49,72 @@ Those values are not secrets. Every Firebase web app ships them in the page —
 they identify the project, they don't authorize anything. What actually keeps
 the crew's data private is the rules file and the authorized-domains list.
 
-**5. Deploy.** With the [Firebase CLI](https://firebase.google.com/docs/cli):
+**5. Publish the security rules.** This is the step that makes the crew's data
+private — **do not skip it and do not leave the database in test mode**, since
+test rules let anyone on the internet read and write everything.
+
+Easiest way: Firestore Database → Rules, paste in the contents of
+`firestore.rules`, and hit Publish. Or with the
+[Firebase CLI](https://firebase.google.com/docs/cli):
 
 ```bash
 npm install -g firebase-tools
 firebase login
-firebase use --add          # pick the project you just made
-firebase deploy             # pushes hosting + firestore.rules together
+firebase use --add
+firebase deploy --only firestore:rules
 ```
 
-That prints a URL like `https://your-project.web.app`. That's the app.
+**6. Authorize the domain you're hosting on** — Authentication → Settings →
+Authorized domains → Add domain. Google sign-in refuses to run on any domain
+not in this list.
 
-**6. Check the rules landed** — Firestore Database → Rules should now match
-`firestore.rules`. If you skipped the CLI, paste that file in by hand and
-publish. **Do not leave the database in test mode**; test rules let anyone on
-the internet read and write everything.
+- GitHub Pages: add `yourname.github.io`
+- Firebase Hosting: already there
+- Local testing: add `localhost`
 
-**7. Authorize your domain** — Authentication → Settings → Authorized domains.
-Firebase Hosting domains are added for you. If you host anywhere else, add that
-domain here or Google sign-in will refuse to run.
+## Hosting
+
+### GitHub Pages
+
+Settings → Pages → deploy from the branch holding these files. The site lands
+at `https://yourname.github.io/repo-name/`. Every path in the app is relative,
+so the project subpath works with no configuration.
+
+Add `yourname.github.io` to Firebase's authorized domains (step 6) or sign-in
+will fail.
+
+### Firebase Hosting
+
+`firebase deploy` publishes hosting and the rules together and gives you
+`https://your-project.web.app`. Worth considering if the crew is mostly on
+iPhones — see the note under Installing.
+
+## Installing it as an app
+
+The app ships a web manifest, icons and a service worker, so it installs to a
+phone or desktop home screen and opens full screen with no browser chrome.
+
+- **Android / Chrome / Edge:** an **Install** button appears in the top bar.
+- **Desktop Chrome / Edge:** same button, or the install icon in the address bar.
+- **iPhone / iPad:** Safari has no install prompt, so the button opens
+  instructions — Share → Add to Home Screen.
+
+The service worker caches the app shell only: HTML, CSS, JS and icons. Goals
+and sign-in always go to the network, so nobody is ever looking at a stale
+fire. Open it with no signal and you get the campfire and a clear failure
+rather than a blank page.
+
+After changing any app file, bump `CACHE` in `sw.js` (`f3-campfire-v1` →
+`-v2`), or installed copies will keep serving the old shell.
+
+**One caveat for iPhone users.** An installed iOS app gets its own storage,
+separate from Safari, so everyone has to sign in again inside the installed
+app. That sign-in uses a redirect through your `*.firebaseapp.com` auth domain,
+and Safari's cross-site storage rules can occasionally break that hop when the
+app is hosted somewhere else — such as GitHub Pages. If the crew is mostly on
+iPhones and you hit this, deploying to Firebase Hosting instead puts the app
+and the auth domain on the same site and the problem goes away. On Android and
+desktop this doesn't come up.
 
 ## Using it
 
@@ -131,7 +181,8 @@ npx http-server -p 8080 .
 ```
 
 Then add `localhost` under Authentication → Settings → Authorized domains so
-sign-in works against your real project.
+sign-in works against your real project. Service workers are allowed on
+`localhost` without HTTPS, so the install flow can be tested there too.
 
 ## Notes
 
@@ -140,3 +191,4 @@ sign-in works against your real project.
 - The whole scene is one 2D canvas. It honours `prefers-reduced-motion` by
   cutting the particle counts and the ember flight time.
 - Nothing to build, no dependencies, no bundler.
+- `.nojekyll` stops GitHub Pages from running the files through Jekyll.

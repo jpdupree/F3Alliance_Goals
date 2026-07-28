@@ -42,13 +42,27 @@ export function watchAuth(cb) {
   return onAuthStateChanged(auth, cb);
 }
 
+function installedAsApp() {
+  return matchMedia('(display-mode: standalone)').matches ||
+         matchMedia('(display-mode: minimal-ui)').matches ||
+         navigator.standalone === true;
+}
+
 export async function signIn() {
   const provider = new GoogleAuthProvider();
   provider.setCustomParameters({ prompt: 'select_account' });
+
+  // Installed to a home screen, a popup opens the system browser in a separate
+  // context that can't hand the result back. Redirect keeps it in the app.
+  if (installedAsApp()) {
+    await signInWithRedirect(auth, provider);
+    return;
+  }
+
   try {
     await signInWithPopup(auth, provider);
   } catch (err) {
-    // Popups get eaten on iOS standalone / strict blockers — fall back.
+    // Blockers and embedded webviews — fall back to the redirect flow.
     if (['auth/popup-blocked', 'auth/operation-not-supported-in-this-environment',
          'auth/cancelled-popup-request'].includes(err?.code)) {
       await signInWithRedirect(auth, provider);
