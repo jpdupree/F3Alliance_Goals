@@ -60,6 +60,11 @@ export function createSky(canvas) {
 
   // The sky is a carousel: one constellation centred, its neighbours peeking
   // in at the edges, and the starfield wheeling a little as you swipe.
+  // 0 = out, 1 = burning. Eased so the last log burning down looks like a fire
+  // going out rather than someone flipping a switch.
+  let fireLife = 0;
+  let firstStats = true;
+
   let scroll = 0;          // float position, in slots
   let scrollTarget = 0;    // integer slot we're easing toward
   let centred = 0;         // last announced centre, for the focus event
@@ -249,6 +254,12 @@ export function createSky(canvas) {
       };
     });
     stats = { ...stats, ...nextStats };
+    // No logs, no fire. Snap on the very first state so opening the app doesn't
+    // look like the fire is being lit every time.
+    if (firstStats) {
+      fireLife = stats.openLogs > 0 ? 1 : 0;
+      firstStats = false;
+    }
     // Somebody joining or leaving shouldn't slide the sky out from under you:
     // if whoever was centred moved in the list, shift by the same amount.
     const n = members.length;
@@ -444,8 +455,9 @@ export function createSky(canvas) {
   }
 
   function drawGlow() {
+    if (fireLife < 0.02) return;
     const o = fireOrigin();
-    const k = fireIntensity();
+    const k = fireIntensity() * fireLife;
     const flick = reduceMotion ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3) + 0.03 * Math.sin(time * 13.1);
     const r = (Math.min(W, usableH()) * (0.26 + 0.22 * k) + pileMetrics().width * 1.6) * flick;
 
@@ -560,8 +572,9 @@ export function createSky(canvas) {
   }
 
   function spawnFlames(dt) {
+    if (fireLife < 0.02) return;
     const k = fireIntensity();
-    const rate = (reduceMotion ? 30 : 105) * k;
+    const rate = (reduceMotion ? 30 : 105) * k * fireLife;
     let n = rate * dt;
     while (n > 0) {
       if (n < 1 && Math.random() > n) break;
@@ -576,7 +589,7 @@ export function createSky(canvas) {
         vy: -(80 + Math.random() * 100) * (0.7 + 0.6 * k) * fs,
         life: 0,
         ttl: 0.5 + Math.random() * 0.65,
-        r: (11 + Math.random() * 17 * k) * fs,
+        r: (11 + Math.random() * 17 * k) * fs * (0.45 + 0.55 * fireLife),
         sway: Math.random() * TAU,
       });
     }
@@ -612,8 +625,9 @@ export function createSky(canvas) {
   }
 
   function spawnAmbient(dt) {
+    if (fireLife < 0.02) return;
     const k = fireIntensity();
-    if (Math.random() < dt * (reduceMotion ? 3 : 11) * k) {
+    if (Math.random() < dt * (reduceMotion ? 3 : 11) * k * fireLife) {
       const o = fireOrigin();
       const { width, fs } = pileMetrics();
       ambient.push({
@@ -910,6 +924,11 @@ export function createSky(canvas) {
     last = now;
     time += dt;
     easeInsets(dt);
+
+    // Catches quicker than it dies — a fire takes a while to go out.
+    const want = stats.openLogs > 0 ? 1 : 0;
+    fireLife = lerp(fireLife, want, 1 - Math.exp(-dt * (want ? 2.2 : 0.9)));
+    if (Math.abs(want - fireLife) < 0.004) fireLife = want;
 
     // Ease toward the target slot unless a finger is on it.
     if (!dragging) {

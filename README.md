@@ -149,7 +149,14 @@ land. The `?` button explains the metaphor to anyone who lands cold.
 
 ### The fire
 
-Two different things drive it, deliberately:
+**No logs, no fire.** An empty pile means a dark fire site — a crew that hasn't
+set anything yet, or one that has finished everything it set. Taking the last
+log off doesn't snap the fire out: it dies down over a couple of seconds and
+the last embers drift up and fade, which is also the moment the tenth star
+lights. It catches quicker than it dies, and the state is snapped on first
+load so opening the app doesn't look like the fire is being lit every time.
+
+With logs on it, two different things drive the fire, deliberately:
 
 - **Width** tracks what's outstanding. The pile widens as the crew throws more
   logs on, and the flames and the ground glow follow it.
