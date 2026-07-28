@@ -465,40 +465,88 @@ export function createSky(canvas) {
   function drawLogs() {
     const o = fireOrigin();
     const { shown, perTier, width, fs } = pileMetrics();
-    for (let i = 0; i < shown; i++) {
-      const r2 = mulberry32(1000 + i * 7919);
-      const tier = Math.floor(i / perTier);
-      const inTier = i % perTier;
-      const inRow = Math.min(perTier, shown - tier * perTier);
-      const tierW = width * (1 - tier * 0.12);
-      const step = tierW / Math.max(inRow, 1);
-      const x = o.x + (inTier - (inRow - 1) / 2) * step + (r2() - 0.5) * 8 * fs;
-      const y = o.y - tier * 10 * fs - 2;
-      const len = tierW * (0.80 + r2() * 0.24);
-      const thick = (11.5 - perTier * 0.6) * fs;
-      const ang = (tier % 2 === 0 ? 1 : -1) * (0.16 + r2() * 0.46)
-                  + (inTier - (inRow - 1) / 2) * 0.05;
+    if (!shown) return;
 
+    const thick = clamp((10.5 - perTier * 0.5) * fs, 4 * fs, 11 * fs);
+    const halfW = width * 0.60;          // how far the feet spread from centre
+    const height = width * 0.78;         // how high the tops reach
+
+    // A couple of logs lie flat underneath once the pile is worth building on,
+    // the rest lean in. One or two on their own just lie there.
+    const flat = shown <= 2 ? shown : (shown >= 6 ? 2 : 0);
+
+    const pieces = [];
+
+    for (let i = 0; i < flat; i++) {
+      const r = mulberry32(4000 + i * 6151);
+      const len = width * (0.85 + r() * 0.3);
+      const bx = o.x - len / 2 + (r() - 0.5) * width * 0.2;
+      const by = o.y - i * thick * 0.7;
+      const rot = (i % 2 ? -1 : 1) * (0.05 + r() * 0.12);
+      // Flat logs are the furthest thing forward at the base, so they sort low.
+      pieces.push({ x: bx, y: by, len, rot, thick, depth: by + 3 });
+    }
+
+    for (let i = flat; i < shown; i++) {
+      const r = mulberry32(1000 + i * 7919);
+      // Feet spread around a shallow ellipse, so some legs are at the back of
+      // the ring and some at the front and they overlap like real firewood.
+      const around = ((i - flat) + 0.5) / Math.max(shown - flat, 1) * TAU
+                     + (r() - 0.5) * 0.55;
+      const bx = o.x + Math.cos(around) * halfW * (0.78 + r() * 0.34);
+      const by = o.y + Math.sin(around) * halfW * 0.24;
+
+      // Tops gather near the middle but not at a single point — a real teepee
+      // is a scruffy bundle, not a cone.
+      const ax = o.x + (r() - 0.5) * width * 0.19;
+      const ay = o.y - height * (0.78 + r() * 0.38);
+
+      const dx = ax - bx, dy = ay - by;
+      pieces.push({
+        x: bx, y: by,
+        len: Math.hypot(dx, dy),
+        rot: Math.atan2(dy, dx),
+        thick: thick * (0.85 + r() * 0.3),
+        depth: by,
+        lean: true,
+      });
+    }
+
+    // Back of the ring first, front last, so the overlap reads as depth.
+    pieces.sort((a, b) => a.depth - b.depth);
+
+    for (const L of pieces) {
       ctx.save();
-      ctx.translate(x, y);
-      ctx.rotate(ang);
-      // body
+      ctx.translate(L.x, L.y);
+      ctx.rotate(L.rot);
+
       ctx.fillStyle = '#241812';
-      roundRect(ctx, -len / 2, -thick / 2, len, thick, thick / 2);
+      roundRect(ctx, 0, -L.thick / 2, L.len, L.thick, L.thick / 2);
       ctx.fill();
-      // rim light from the flames
-      const lg = ctx.createLinearGradient(0, -thick / 2, 0, thick / 2);
+
+      // Rim light down the side facing the flames.
+      const lg = ctx.createLinearGradient(0, -L.thick / 2, 0, L.thick / 2);
       lg.addColorStop(0, 'rgba(255,150,60,0.30)');
       lg.addColorStop(0.55, 'rgba(255,90,30,0.06)');
       lg.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = lg;
-      roundRect(ctx, -len / 2, -thick / 2, len, thick, thick / 2);
+      roundRect(ctx, 0, -L.thick / 2, L.len, L.thick, L.thick / 2);
       ctx.fill();
-      // glowing end grain
-      ctx.fillStyle = `rgba(255,${120 + Math.round(60 * Math.sin(time * 3 + i))},60,0.55)`;
+
+      // The end sitting in the fire glows. A soft bloom rather than a disc —
+      // a dozen hard dots converging at the apex read as confetti.
+      const hot = L.lean ? L.len - L.thick * 0.4 : L.len * 0.5;
+      const heat = 0.34 + 0.12 * Math.sin(time * 3 + L.y);
+      const rg = ctx.createRadialGradient(hot, 0, 0, hot, 0, L.thick * 1.15);
+      rg.addColorStop(0, `rgba(255,196,110,${heat})`);
+      rg.addColorStop(0.5, `rgba(255,130,50,${heat * 0.4})`);
+      rg.addColorStop(1, 'rgba(255,110,40,0)');
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = rg;
       ctx.beginPath();
-      ctx.ellipse(-len / 2 + 2 * fs, 0, 2.6 * fs, thick / 2.4, 0, 0, TAU);
+      ctx.arc(hot, 0, L.thick * 1.15, 0, TAU);
       ctx.fill();
+      ctx.globalCompositeOperation = 'source-over';
       ctx.restore();
     }
 
@@ -506,7 +554,7 @@ export function createSky(canvas) {
       ctx.fillStyle = 'rgba(255,205,150,0.5)';
       ctx.font = `600 ${Math.round(12 * fs)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(`+${stats.openLogs - shown} more on the pile`, o.x, o.y + 42 * fs);
+      ctx.fillText(`+${stats.openLogs - shown} more on the pile`, o.x, o.y + 34 * fs);
       ctx.textAlign = 'left';
     }
   }

@@ -156,11 +156,16 @@ Two different things drive it, deliberately:
 - **Brightness** tracks what the crew has knocked down over the season, on a
   curve that keeps climbing but never runs away.
 
-The pile draws up to `LOG_CAP` logs (24) laid in tiers, widening the tiers as
-the count grows rather than just stacking higher. Past that the extra is stated
-in words — "+13 more on the pile" — since two dozen sticks is already reading as
-a big fire and more would just be a wall of timber. Raise `LOG_CAP` in
-`js/sky.js` if you want more of them drawn.
+The logs are built as a teepee: feet spread around a shallow ellipse so some
+legs stand at the back of the ring and some at the front, tops gathering near
+the middle but not at a single point, and the whole lot drawn back-to-front so
+the overlap reads as depth. One or two logs on their own just lie flat; from
+six up, a couple stay flat underneath and the rest lean in.
+
+The pile draws up to `LOG_CAP` logs (24), spreading wider as the count grows.
+Past that the extra is stated in words — "+13 more on the pile" — since two
+dozen sticks already reads as a big fire and more would just be a wall of
+timber. Raise `LOG_CAP` in `js/sky.js` if you want more of them drawn.
 
 The treeline stands at 78% of the sky band and the fire at 92%, so the pile sits
 on the near ground with the trees behind it. Both are measured against the
