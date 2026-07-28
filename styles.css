@@ -411,3 +411,39 @@ ol.help-list li { padding-left: 4px; }
 .draw-foot .btn { flex: 1 1 auto; }
 .draw-link { margin-top: 10px; font-size: 13px; }
 .mc-edit { width: 100%; margin-top: 12px; }
+
+/* ── manage crew ─────────────────────────────────────────────────────── */
+.admin-card { width: min(560px, 100%); }
+.admin-list { list-style: none; margin: 16px 0 0; padding: 0; max-height: 48vh; overflow-y: auto; }
+.admin-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 2px;
+  border-top: 1px solid rgba(150, 175, 220, .09);
+}
+.admin-row:first-child { border-top: none; }
+.admin-row img {
+  width: 32px; height: 32px; border-radius: 50%; flex: none;
+  border: 1px solid var(--panel-line);
+}
+.admin-who { flex: 1; min-width: 0; }
+.admin-name { font-size: 14px; font-weight: 650; }
+.admin-name .you {
+  font-size: 11px; font-weight: 600; color: var(--ember);
+  border: 1px solid rgba(255, 150, 60, .3);
+  border-radius: 999px; padding: 1px 7px; margin-left: 7px;
+  vertical-align: 1px;
+}
+.admin-sub {
+  font-size: 11.5px; color: var(--ink-faint); margin-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.admin-acts { display: flex; gap: 6px; flex: none; }
+.btn.danger { color: #ff9d8a; border-color: rgba(255, 110, 90, .3); }
+.btn.danger:hover { background: rgba(255, 90, 70, .14); border-color: rgba(255, 110, 90, .55); }
+.admin-note { border-top: 1px solid rgba(150, 175, 220, .1); padding-top: 14px; margin-top: 16px; }
+.modal-foot { display: flex; gap: 10px; flex-wrap: wrap; }
+
+@media (max-width: 560px) {
+  .admin-row { flex-wrap: wrap; }
+  .admin-acts { width: 100%; justify-content: flex-end; }
+}

@@ -51,7 +51,7 @@ const {
 
 const {
   collection, doc, addDoc, getDoc, setDoc, updateDoc, deleteDoc,
-  onSnapshot, query, orderBy, serverTimestamp,
+  onSnapshot, query, orderBy, serverTimestamp, writeBatch,
 } = dbMod;
 
 await setPersistence(auth, browserLocalPersistence).catch(() => {});
@@ -197,4 +197,27 @@ export function setGoalAchieved(crewId, goalId, achieved) {
 
 export function removeGoal(crewId, goalId) {
   return deleteDoc(doc(db, 'crews', crewId, 'goals', goalId));
+}
+
+// ── crew owner tools ──────────────────────────────────────────────────────
+// Only the guy who lit the fire can use these, and firestore.rules is what
+// enforces that. Note this removes a man from *this crew* — it does not touch
+// his Google account or his Firebase Auth record, which can only be deleted
+// with the Admin SDK or from the Firebase console.
+
+/** Delete a batch of goals by id. Chunked to stay under the 500-write limit. */
+export async function removeGoals(crewId, goalIds) {
+  for (let i = 0; i < goalIds.length; i += 400) {
+    const batch = writeBatch(db);
+    for (const id of goalIds.slice(i, i + 400)) {
+      batch.delete(doc(db, 'crews', crewId, 'goals', id));
+    }
+    await batch.commit();
+  }
+}
+
+/** Take a man's seat back: his goals go first, then his membership. */
+export async function removeMember(crewId, uid, goalIds = []) {
+  if (goalIds.length) await removeGoals(crewId, goalIds);
+  await deleteDoc(doc(db, 'crews', crewId, 'members', uid));
 }

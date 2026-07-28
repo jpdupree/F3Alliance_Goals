@@ -24,6 +24,8 @@ const els = {
   drawCount: $('drawCount'), drawUndo: $('drawUndo'), drawRemove: $('drawRemove'),
   drawClear: $('drawClear'), drawAuto: $('drawAuto'), drawSave: $('drawSave'),
   drawClose: $('drawClose'), drawLabel: $('drawLabel'),
+  adminBtn: $('adminBtn'), adminModal: $('adminModal'),
+  adminClose: $('adminClose'), adminList: $('adminList'),
   installBtn: $('installBtn'), installModal: $('installModal'),
   installClose: $('installClose'), installLede: $('installLede'), installSteps: $('installSteps'),
   memberCard: $('memberCard'), memberClose: $('memberClose'),
@@ -389,6 +391,30 @@ function showMemberCard(uid) {
   els.memberCard.hidden = false;
 }
 
+/**
+ * Losing read access mid-session means the owner took your seat back (or the
+ * crew is gone). Show that plainly instead of a raw permission error.
+ */
+function handleLostAccess() {
+  unsubMembers?.(); unsubGoals?.();
+  unsubMembers = unsubGoals = null;
+  Object.assign(state, {
+    crewId: null, crew: null, members: [], goals: [], me: null,
+    bootstrapped: false, achievedSeen: new Set(), pending: new Map(),
+    celebrated: new Set(),
+  });
+  localStorage.removeItem(LS_CREW);
+  els.topbar.hidden = true;
+  els.dock.hidden = true;
+  els.memberCard.hidden = true;
+  els.adminModal.hidden = true;
+  els.helpModal.hidden = true;
+  if (location.hash) { history.replaceState(null, '', location.pathname); }
+  els.gateTitle.textContent = 'F3 Campfire';
+  els.gateLede.textContent = 'You’re not at that fire anymore.';
+  onSignedIn();
+}
+
 function errText(err) {
   if (err?.code === 'permission-denied') {
     return 'Firestore said no — you can only change your own goals.';
@@ -401,17 +427,24 @@ function startCrewListeners() {
   unsubGoals?.();
   unsubGoals = db.watchGoals(state.crewId, (goals, err) => {
     if (err) {
-      fail(
-        err.code === 'permission-denied'
-          ? 'Firestore turned down the read. Deploy firestore.rules from this repo, then reload.'
-          : `Couldn’t load goals: ${err.message}`,
-      );
+      // Denied *after* we were reading fine means the seat was taken back;
+      // denied on the very first read means the rules aren't deployed.
+      if (err.code === 'permission-denied' && state.bootstrapped) {
+        handleLostAccess();
+      } else {
+        fail(
+          err.code === 'permission-denied'
+            ? 'Firestore turned down the read. Deploy firestore.rules from this repo, then reload.'
+            : `Couldn’t load goals: ${err.message}`,
+        );
+      }
       return;
     }
     state.goals = goals;
     renderMyGoals();
     fireNewEmbers();
     refreshSky();
+    renderAdmin();
     if (!state.bootstrapped) {
       state.bootstrapped = true;
       state.achievedSeen = new Set(goals.filter((g) => g.achieved).map((g) => g.id));
@@ -489,11 +522,15 @@ async function attachCrew(crewId) {
   state.me = mine;
   unsubMembers?.();
   unsubMembers = db.watchMembers(crewId, (members, err) => {
-    if (err) { fail(`Couldn’t load the crew: ${errText(err)}`); return; }
+    if (err) {
+      if (err.code === 'permission-denied' && state.bootstrapped) handleLostAccess();
+      else fail(`Couldn’t load the crew: ${errText(err)}`);
+      return;
+    }
     state.members = members;
     state.me = members.find((m) => m.uid === state.user?.uid) || state.me;
     if (els.gate.hidden === false) enterCrew();
-    else { renderMyGoals(); refreshSky(); }
+    else { renderMyGoals(); refreshSky(); renderAdmin(); }
   });
 }
 
@@ -659,7 +696,20 @@ els.memberClose.addEventListener('click', () => {
   sky?.clearFocus();
 });
 
-els.helpBtn.addEventListener('click', () => { els.helpModal.hidden = false; });
+els.helpBtn.addEventListener('click', () => {
+  els.adminBtn.hidden = !isCrewOwner();
+  els.helpModal.hidden = false;
+});
+
+els.adminBtn.addEventListener('click', () => {
+  els.helpModal.hidden = true;
+  els.adminModal.hidden = false;
+  renderAdmin();
+});
+els.adminClose.addEventListener('click', () => { els.adminModal.hidden = true; });
+els.adminModal.addEventListener('click', (e) => {
+  if (e.target === els.adminModal) els.adminModal.hidden = true;
+});
 els.helpClose.addEventListener('click', () => { els.helpModal.hidden = true; });
 els.helpModal.addEventListener('click', (e) => {
   if (e.target === els.helpModal) els.helpModal.hidden = true;
@@ -682,9 +732,115 @@ window.addEventListener('hashchange', () => {
 
 document.addEventListener('keydown', (e) => {
   if (e.key !== 'Escape') return;
+  if (!els.adminModal.hidden) { els.adminModal.hidden = true; return; }
   if (!els.helpModal.hidden) { els.helpModal.hidden = true; return; }
   if (!els.memberCard.hidden) { els.memberCard.hidden = true; sky?.clearFocus(); }
 });
+
+// ── manage crew (owner only) ───────────────────────────────────────────────
+function isCrewOwner() {
+  return !!state.crew && state.crew.createdBy === state.user?.uid;
+}
+
+function goalIdsFor(uid) {
+  return state.goals.filter((g) => g.uid === uid).map((g) => g.id);
+}
+
+function renderAdmin() {
+  if (els.adminModal.hidden) return;
+  const byMember = goalsByMember();
+  els.adminList.innerHTML = '';
+
+  for (const m of state.members) {
+    const goals = byMember.get(m.uid) || [];
+    const done = goals.filter((g) => g.achieved).length;
+    const isMe = m.uid === state.user?.uid;
+
+    const li = document.createElement('li');
+    li.className = 'admin-row';
+
+    if (m.photoURL) {
+      const img = document.createElement('img');
+      img.src = m.photoURL;
+      img.alt = '';
+      li.appendChild(img);
+    }
+
+    const who = document.createElement('div');
+    who.className = 'admin-who';
+    const name = document.createElement('div');
+    name.className = 'admin-name';
+    name.textContent = m.f3Name || m.displayName || 'Pax';
+    if (isMe) {
+      const tag = document.createElement('span');
+      tag.className = 'you';
+      tag.textContent = 'you';
+      name.appendChild(tag);
+    }
+    const sub = document.createElement('div');
+    sub.className = 'admin-sub';
+    const joined = m.joinedAt?.toDate?.();
+    sub.textContent = [
+      goals.length ? `${done} of ${goals.length} lit` : 'no logs',
+      shapeFor(m).label,
+      joined ? `joined ${joined.toLocaleDateString()}` : null,
+    ].filter(Boolean).join(' · ');
+    who.append(name, sub);
+    li.appendChild(who);
+
+    const acts = document.createElement('div');
+    acts.className = 'admin-acts';
+
+    const clear = document.createElement('button');
+    clear.className = 'btn ghost small';
+    clear.type = 'button';
+    clear.textContent = 'Clear logs';
+    clear.disabled = !goals.length;
+    clear.addEventListener('click', async () => {
+      const label = m.f3Name || 'this pax';
+      if (!confirm(`Delete all ${goals.length} of ${label}'s logs? This can't be undone.`)) return;
+      acts.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      try {
+        await db.removeGoals(state.crewId, goalIdsFor(m.uid));
+        toast(`Cleared ${label}'s logs.`);
+      } catch (err) {
+        toast(errText(err));
+      } finally {
+        renderAdmin();
+      }
+    });
+    acts.appendChild(clear);
+
+    const remove = document.createElement('button');
+    remove.className = 'btn danger small';
+    remove.type = 'button';
+    remove.textContent = isMe ? 'Leave' : 'Remove';
+    remove.addEventListener('click', async () => {
+      const label = m.f3Name || 'this pax';
+      const msg = isMe
+        ? `Leave ${state.crew?.name || 'this crew'}? Your logs and constellation go with you.`
+        : `Take ${label}'s seat back? His ${goals.length} log${goals.length === 1 ? '' : 's'} and his constellation are deleted. He can rejoin with the crew link.`;
+      if (!confirm(msg)) return;
+      acts.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      try {
+        await db.removeMember(state.crewId, m.uid, goalIdsFor(m.uid));
+        if (isMe) {
+          handleLostAccess();
+        } else {
+          toast(`${label} is out.`);
+        }
+      } catch (err) {
+        toast(errText(err));
+      } finally {
+        renderAdmin();
+      }
+    });
+    acts.appendChild(remove);
+
+    li.appendChild(acts);
+    els.adminList.appendChild(li);
+  }
+}
 
 // ── install / PWA ──────────────────────────────────────────────────────────
 export function isStandalone() {

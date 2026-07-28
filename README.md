@@ -171,6 +171,36 @@ lights his whole creature and a guy with 30 still gets an ember per goal. Hit
 everything you set and every star is lit — that's what "complete" means, not
 some fixed number of goals.
 
+## Managing the crew
+
+Whoever created the crew is its owner (`createdBy` on the crew doc). He gets a
+**Manage crew** button in the `?` sheet, listing everyone with their tally and
+two actions:
+
+- **Clear logs** — delete all of that man's goals, leaving him at the fire.
+- **Remove** — delete his goals *and* his membership. He can rejoin with the
+  crew link any time; he just starts fresh.
+
+Both are useful for clearing out test accounts. His own row says **Leave**
+instead of Remove.
+
+The owner is granted **delete** over members and goals, deliberately not
+**write** — so he can clean up, but he still can't put words in another man's
+mouth or tick off someone else's goal. That distinction is in `firestore.rules`,
+not just the UI.
+
+If someone is removed while his app is open, his listeners lose read access and
+he lands back on the crew screen with "You're not at that fire anymore" rather
+than a raw permission error.
+
+**This does not delete anyone's account.** Removing a man takes him out of that
+crew only. His Google account and his Firebase Auth record are untouched —
+deleting those needs the Admin SDK or the Firebase console under
+Authentication → Users. Worth knowing while testing: deleting the Auth user
+does *not* delete his member doc or goals, and rejoining with the same Google
+account produces the same uid, so his old data comes back unless you removed
+him here first.
+
 ## Privacy model
 
 - The crew id in the link is the capability. Ids are random and crews can't be
@@ -180,8 +210,9 @@ some fixed number of goals.
 - Joining is creating your own member doc, so anyone with the link and a Google
   account can take a seat. If you'd rather approve people, see below.
 - Writing a goal requires `uid == request.auth.uid` on both the existing and
-  incoming document, so a guy can't create, edit, retarget or delete anyone
-  else's.
+  incoming document, so a guy can't create, edit or retarget anyone else's.
+- The crew owner can additionally *delete* members and goals — see Managing the
+  crew. He is never granted write access to them.
 
 To lock joining down to an invite list, add an `allowed` array of email
 addresses to the crew doc and require it in the members `create` rule:

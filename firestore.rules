@@ -16,6 +16,15 @@ service cloud.firestore {
       );
     }
 
+    // The guy who lit the fire runs it. He can take a seat back and clear a
+    // man's goals — but note he is never granted *write* over anyone's goals
+    // below, only delete. Nobody can put words in another man's mouth.
+    function isCrewOwner(crewId) {
+      return signedIn() && get(
+        /databases/$(database)/documents/crews/$(crewId)
+      ).data.createdBy == request.auth.uid;
+    }
+
     match /crews/{crewId} {
 
       // You need the crew id to read the doc — ids are random, so the link is
@@ -74,7 +83,8 @@ service cloud.firestore {
                       && request.resource.data.f3Name.size() <= 28
                       && shapeOk();
 
-        allow delete: if signedIn() && request.auth.uid == memberId;
+        allow delete: if signedIn()
+                      && (request.auth.uid == memberId || isCrewOwner(crewId));
       }
 
       match /goals/{goalId} {
@@ -94,7 +104,8 @@ service cloud.firestore {
                       && request.resource.data.uid == resource.data.uid
                       && request.resource.data.title.size() <= 80;
 
-        allow delete: if isMember(crewId) && resource.data.uid == request.auth.uid;
+        allow delete: if isMember(crewId)
+                      && (resource.data.uid == request.auth.uid || isCrewOwner(crewId));
       }
     }
   }

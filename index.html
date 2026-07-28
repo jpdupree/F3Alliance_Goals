@@ -145,8 +145,28 @@
     <p class="help-fine">Tap a constellation to see whose it is. Tap the sky to pull back.</p>
     <p class="help-fine">Hit <b>Install</b> up top to put the campfire on your home screen — it opens full screen and remembers your crew.</p>
     <div class="modal-foot">
+      <button class="btn ghost" id="adminBtn" type="button" hidden>Manage crew</button>
       <button class="btn ghost" id="signOutBtn2">Sign out</button>
     </div>
+  </div>
+</div>
+
+<!-- ── Manage crew (owner only) ──────────────────────────────── -->
+<div id="adminModal" class="modal" hidden>
+  <div class="modal-card admin-card">
+    <button class="close" id="adminClose" aria-label="Close">×</button>
+    <h2>Manage crew</h2>
+    <p class="help-fine">
+      You lit this fire, so you can take a seat back or clear somebody's logs —
+      handy for cleaning up test accounts. You still can't write anyone's goals
+      for him; that stays his.
+    </p>
+    <ul class="admin-list" id="adminList"></ul>
+    <p class="help-fine admin-note">
+      Removing a man takes him out of <b>this crew</b> and deletes his logs. It
+      does not delete his Google account — do that in the Firebase console under
+      Authentication → Users. He can rejoin any time with the crew link.
+    </p>
   </div>
 </div>
 
