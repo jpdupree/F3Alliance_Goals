@@ -96,7 +96,27 @@ body { overflow: hidden; }
 #topbar > * { pointer-events: auto; }
 .brand { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 auto; }
 .brand > div { min-width: 0; }
-.brand .flame { font-size: 22px; filter: drop-shadow(0 0 12px rgba(255, 140, 40, .7)); }
+/* The flame doubles as the reload button, so it gets a tap target and a bit of
+   life on press — but no button chrome. It should still read as the logo. */
+.brand .flame {
+  appearance: none;
+  background: none;
+  border: 0;
+  /* Padding out to a thumb-sized target, pulled back by an equal margin so the
+     flame stays exactly where it sat as a logo. */
+  padding: 11px 10px;
+  margin: -11px -10px;
+  font: inherit;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  filter: drop-shadow(0 0 12px rgba(255, 140, 40, .7));
+  transition: transform .12s ease, filter .12s ease;
+}
+.brand .flame:hover { filter: drop-shadow(0 0 16px rgba(255, 170, 60, .95)); }
+.brand .flame:active { transform: scale(.88); filter: drop-shadow(0 0 20px rgba(255, 190, 90, 1)); }
+.brand .flame:focus-visible { outline: 2px solid var(--ember, #ff9d3c); outline-offset: 3px; border-radius: 6px; }
 .crew-name, .crew-sub {
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }

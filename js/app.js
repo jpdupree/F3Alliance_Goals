@@ -16,6 +16,7 @@ const els = {
   previewCanvas: $('previewCanvas'), previewLabel: $('previewLabel'),
   topbar: $('topbar'), crewName: $('crewName'), crewSub: $('crewSub'),
   shareBtn: $('shareBtn'), signOutBtn: $('signOutBtn'), helpBtn: $('helpBtn'),
+  reloadBtn: $('reloadBtn'),
   dock: $('dock'), dockHandle: $('dockHandle'), dockTally: $('dockTally'),
   goalForm: $('goalForm'), goalTitle: $('goalTitle'),
   goalList: $('goalList'), goalEmpty: $('goalEmpty'),
@@ -729,6 +730,29 @@ els.mcEditShape.addEventListener('click', async () => {
   } catch (err) {
     toast(errText(err));
   }
+});
+
+// The flame in the top bar is the reload button. Goals arrive live, so this is
+// for the other things a reload fixes: a stale app version after a deploy, or a
+// page that's been sitting in the background long enough to lose its listeners.
+//
+// A plain reload isn't enough on its own — the service worker serves app files
+// from cache and refreshes them behind your back, so you'd land on the previous
+// version and need a second reload. Asking the worker to update first means one
+// tap is one refresh. It's given a short leash: if the network is slow, reload
+// anyway rather than leave a dead button.
+els.reloadBtn?.addEventListener('click', async () => {
+  els.reloadBtn.disabled = true;
+  try {
+    const reg = await navigator.serviceWorker?.getRegistration();
+    if (reg) {
+      await Promise.race([
+        reg.update(),
+        new Promise((r) => setTimeout(r, 1500)),
+      ]);
+    }
+  } catch { /* a failed update check is no reason not to reload */ }
+  location.reload();
 });
 
 els.shareBtn.addEventListener('click', async () => {

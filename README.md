@@ -109,6 +109,13 @@ rather than a blank page.
 After changing any app file, bump `CACHE` in `sw.js` (`f3-campfire-v1` →
 `-v2`), or installed copies will keep serving the old shell.
 
+**The flame in the top bar is the reload button.** App files are served from
+cache and refreshed in the background, so a plain reload lands on the previous
+version and needs a second one. Tapping the flame asks the service worker to
+check for a new `sw.js` first (capped at 1.5s so a slow network can't leave a
+dead button), then reloads — one tap, one refresh. Goals don't need it; those
+arrive live over Firestore.
+
 **One caveat for iPhone users.** An installed iOS app gets its own storage,
 separate from Safari, so everyone has to sign in again inside the installed
 app. That sign-in uses a redirect through your `*.firebaseapp.com` auth domain,
