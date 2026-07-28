@@ -5,7 +5,7 @@
 // serving those from a cache would show the crew a stale fire.
 //
 // Bump CACHE when shipping changes so clients pick them up.
-const CACHE = 'f3-campfire-v12';
+const CACHE = 'f3-campfire-v13';
 
 // Relative so this works under a project subpath (GitHub Pages) as well as at
 // a domain root (Firebase Hosting).

@@ -265,6 +265,300 @@ const SHAPES = {
     ],
     edges: [[1,0],[0,2],[0,3],[3,4],[4,5],[5,6],[6,7],[6,8],[6,9]],
   },
+  bolt: {
+    label: 'the lightning bolt',
+    stars: [
+      [0.68, 0.02], [0.52, 0.22], [0.24, 0.52],  // top point down the left edge
+      [0.46, 0.52],                              // upper notch
+      [0.38, 0.70], [0.26, 0.98],                // down to the bottom point
+      [0.48, 0.68], [0.70, 0.46],                // back up the right edge
+      [0.48, 0.46], [0.60, 0.24],                // lower notch, home
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0]],
+  },
+  boot: {
+    label: 'the boot',
+    stars: [
+      [0.32, 0.04], [0.60, 0.04],                // opening
+      [0.62, 0.44], [0.66, 0.64],                // ankle
+      [0.90, 0.72], [0.92, 0.90],                // toe
+      [0.30, 0.90], [0.26, 0.66],                // sole, heel
+      [0.28, 0.40], [0.30, 0.20],                // shaft back
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0]],
+  },
+  flower: {
+    label: 'the bloom',
+    stars: [
+      [0.50, 0.34],                              // centre
+      [0.50, 0.10], [0.72, 0.22], [0.72, 0.48], [0.28, 0.48], [0.28, 0.22],
+      [0.50, 0.56], [0.50, 0.76], [0.50, 0.96],  // stem
+      [0.76, 0.70],                              // leaf
+    ],
+    edges: [[0,1],[0,2],[0,3],[0,4],[0,5],[1,2],[2,3],[3,4],[4,5],[5,1],
+            [0,6],[6,7],[7,8],[7,9]],
+  },
+  plane: {
+    label: 'the aeroplane',
+    stars: [
+      [0.50, 0.05], [0.50, 0.45], [0.50, 0.80],  // nose, body, rear
+      [0.06, 0.56], [0.94, 0.56],                // wing tips
+      [0.40, 0.42], [0.60, 0.42],                // wing roots
+      [0.30, 0.92], [0.70, 0.92],                // tailplane
+      [0.50, 0.97],                              // fin
+    ],
+    edges: [[0,1],[1,2],[2,9],[1,5],[5,3],[1,6],[6,4],[2,7],[2,8]],
+  },
+  train: {
+    label: 'the locomotive',
+    stars: [
+      [0.08, 0.26], [0.62, 0.26],                // cab roof
+      [0.62, 0.44], [0.86, 0.44],                // boiler top
+      [0.86, 0.66], [0.08, 0.66],                // footplate
+      [0.22, 0.82], [0.46, 0.82], [0.70, 0.82],  // wheels
+      [0.18, 0.09],                              // stack
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[5,6],[6,7],[7,8],[8,4],[0,9]],
+  },
+  car: {
+    label: 'the racer',
+    stars: [
+      [0.06, 0.58], [0.28, 0.58], [0.38, 0.36], [0.64, 0.36],
+      [0.74, 0.58], [0.94, 0.58], [0.94, 0.74], [0.06, 0.74],
+      [0.30, 0.88], [0.70, 0.88],                // wheels
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[7,8],[8,9],[9,6]],
+  },
+  gear: {
+    label: 'the cog',
+    stars: [
+      [0.50, 0.04], [0.67, 0.27], [0.94, 0.36], [0.77, 0.59], [0.77, 0.87],
+      [0.50, 0.78], [0.23, 0.87], [0.23, 0.59], [0.06, 0.36], [0.33, 0.27],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0]],
+  },
+  ring: {
+    label: 'the ring',
+    stars: [
+      [0.50, 0.30], [0.73, 0.39], [0.82, 0.62], [0.73, 0.85],
+      [0.50, 0.94], [0.27, 0.85], [0.18, 0.62], [0.27, 0.39],
+      [0.36, 0.08], [0.64, 0.08],                // the stone
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[8,9],[8,0],[9,0]],
+  },
+  book: {
+    label: 'the open book',
+    stars: [
+      [0.50, 0.20], [0.50, 0.86],                // spine
+      [0.08, 0.28], [0.06, 0.80],                // left board
+      [0.92, 0.28], [0.94, 0.80],                // right board
+      [0.28, 0.22], [0.72, 0.22],                // page tops
+      [0.26, 0.84], [0.74, 0.84],                // page bottoms
+    ],
+    edges: [[0,1],[0,6],[6,2],[2,3],[3,8],[8,1],[0,7],[7,4],[4,5],[5,9],[9,1]],
+  },
+  drum: {
+    label: 'the drum',
+    stars: [
+      [0.50, 0.16], [0.88, 0.30], [0.50, 0.44], [0.12, 0.30],  // head
+      [0.86, 0.66], [0.50, 0.80], [0.14, 0.66],                // shell
+      [0.22, 0.04], [0.78, 0.04],                              // sticks
+      [0.50, 0.62],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,0],[1,4],[3,6],[4,5],[5,6],[2,9],[9,5],[7,2],[8,2]],
+  },
+  mushroom: {
+    label: 'the mushroom cloud',
+    stars: [
+      [0.50, 0.94], [0.44, 0.74], [0.56, 0.74],  // stem
+      [0.40, 0.54], [0.60, 0.54],
+      [0.16, 0.42], [0.30, 0.24], [0.50, 0.14], [0.70, 0.24], [0.84, 0.42],
+    ],
+    edges: [[0,1],[0,2],[1,3],[2,4],[3,4],[3,5],[5,6],[6,7],[7,8],[8,9],[9,4]],
+  },
+  column: {
+    label: 'the column',
+    stars: [
+      [0.22, 0.08], [0.78, 0.08],                // capital
+      [0.28, 0.22], [0.72, 0.22],
+      [0.34, 0.76], [0.66, 0.76],                // shaft
+      [0.26, 0.86], [0.74, 0.86],
+      [0.18, 0.96], [0.82, 0.96],                // base
+    ],
+    edges: [[0,1],[0,2],[1,3],[2,3],[2,4],[3,5],[4,5],[4,6],[5,7],[6,7],[6,8],[7,9],[8,9]],
+  },
+  knife: {
+    label: 'the knife',
+    stars: [
+      [0.04, 0.90],                              // point
+      [0.24, 0.66], [0.44, 0.42],                // spine
+      [0.56, 0.28],                              // heel, top of the bolster
+      [0.74, 0.44],                              // heel, bottom of the bolster
+      [0.50, 0.68], [0.26, 0.96],                // cutting edge, back to the point
+      [0.76, 0.14], [0.96, 0.06], [0.98, 0.30],  // handle
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0],[3,7],[7,8],[8,9],[9,4]],
+  },
+  heart: {
+    label: 'the heart',
+    stars: [
+      [0.50, 0.24],                              // notch
+      [0.30, 0.10], [0.10, 0.26], [0.10, 0.48],  // left lobe
+      [0.50, 0.94],                              // point
+      [0.90, 0.48], [0.90, 0.26], [0.70, 0.10],  // right lobe
+      [0.28, 0.66], [0.72, 0.66],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,8],[8,4],[0,7],[7,6],[6,5],[5,9],[9,4]],
+  },
+  sandwich: {
+    label: 'the sub',
+    stars: [
+      [0.06, 0.40], [0.50, 0.26], [0.94, 0.40],  // top
+      [0.94, 0.58], [0.50, 0.70], [0.06, 0.58],  // bottom
+      [0.22, 0.48], [0.44, 0.44], [0.66, 0.46], [0.84, 0.52],  // filling
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[5,6],[6,7],[7,8],[8,9],[9,3]],
+  },
+  waffle: {
+    label: 'the waffle',
+    stars: [
+      [0.10, 0.12], [0.90, 0.12], [0.90, 0.88], [0.10, 0.88],
+      [0.37, 0.12], [0.63, 0.12],
+      [0.37, 0.88], [0.63, 0.88],
+      [0.10, 0.50], [0.90, 0.50],
+    ],
+    edges: [[0,4],[4,5],[5,1],[1,9],[9,2],[2,7],[7,6],[6,3],[3,8],[8,0],
+            [4,6],[5,7],[8,9]],
+  },
+  pepper: {
+    label: 'the pepper',
+    stars: [
+      [0.46, 0.05], [0.52, 0.20],                // stem
+      [0.30, 0.26], [0.20, 0.44], [0.24, 0.66], [0.40, 0.84], [0.60, 0.93],
+      [0.74, 0.76], [0.72, 0.50], [0.66, 0.28],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,1]],
+  },
+  candycane: {
+    label: 'the candy cane',
+    stars: [
+      [0.30, 0.30], [0.34, 0.14], [0.50, 0.05], [0.66, 0.14], [0.70, 0.30],
+      [0.62, 0.44], [0.60, 0.62], [0.58, 0.80], [0.56, 0.96],
+      [0.46, 0.34],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[0,9],[9,4]],
+  },
+  spoon: {
+    label: 'the spoon',
+    stars: [
+      [0.50, 0.05], [0.68, 0.16], [0.72, 0.34], [0.60, 0.46],
+      [0.40, 0.46], [0.28, 0.34], [0.32, 0.16],
+      [0.50, 0.60], [0.50, 0.78], [0.50, 0.96],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,0],[3,7],[4,7],[7,8],[8,9]],
+  },
+  paw: {
+    label: 'the paw print',
+    stars: [
+      [0.18, 0.34], [0.38, 0.19], [0.62, 0.19], [0.82, 0.34],  // toes
+      [0.26, 0.62], [0.42, 0.52], [0.58, 0.52], [0.74, 0.62],  // pad
+      [0.66, 0.87], [0.34, 0.87],
+    ],
+    edges: [[4,5],[5,6],[6,7],[7,8],[8,9],[9,4],[0,4],[1,5],[2,6],[3,7]],
+  },
+  house: {
+    label: 'the homestead',
+    stars: [
+      [0.50, 0.05],                              // peak
+      [0.08, 0.40], [0.92, 0.40],                // eaves
+      [0.08, 0.94], [0.92, 0.94],                // base
+      [0.40, 0.94], [0.40, 0.66], [0.60, 0.66], [0.60, 0.94],  // door
+      [0.74, 0.12],                              // chimney
+    ],
+    edges: [[0,1],[0,2],[1,2],[1,3],[3,5],[5,6],[6,7],[7,8],[8,4],[4,2],[0,9]],
+  },
+  football: {
+    label: 'the football',
+    stars: [
+      [0.02, 0.50], [0.20, 0.22], [0.50, 0.10], [0.80, 0.22],
+      [0.98, 0.50], [0.80, 0.78], [0.50, 0.90], [0.20, 0.78],
+      [0.50, 0.32], [0.50, 0.68],                // the seam
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[2,8],[8,9],[9,6]],
+  },
+  duck: {
+    label: 'the duck',
+    stars: [
+      [0.02, 0.22], [0.16, 0.20], [0.22, 0.04], [0.32, 0.22],  // bill, head
+      [0.36, 0.42],                                            // neck
+      [0.30, 0.62], [0.52, 0.88], [0.82, 0.80],                // breast, belly
+      [0.98, 0.54], [0.62, 0.44],                              // tail, back
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,4]],
+  },
+  footprint: {
+    label: 'the footprint',
+    stars: [
+      [0.42, 0.92], [0.30, 0.74], [0.30, 0.50], [0.40, 0.34],
+      [0.62, 0.34], [0.70, 0.52], [0.62, 0.76],
+      [0.34, 0.15], [0.50, 0.08], [0.66, 0.15],  // toes
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,7],[7,8],[8,9],[9,4],[4,5],[5,6],[6,0]],
+  },
+  iceberg: {
+    label: 'the iceberg',
+    stars: [
+      [0.50, 0.05], [0.72, 0.34], [0.28, 0.34],
+      [0.10, 0.40], [0.90, 0.40],                // waterline
+      [0.06, 0.60], [0.24, 0.84], [0.52, 0.95], [0.80, 0.78], [0.94, 0.56],
+    ],
+    edges: [[0,1],[1,4],[4,9],[9,8],[8,7],[7,6],[6,5],[5,3],[3,2],[2,0],[3,4]],
+  },
+  baguette: {
+    label: 'the baguette',
+    stars: [
+      [0.08, 0.78], [0.16, 0.60], [0.40, 0.34], [0.66, 0.13], [0.86, 0.06],
+      [0.95, 0.19], [0.78, 0.41], [0.52, 0.65], [0.24, 0.87], [0.11, 0.92],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0]],
+  },
+  skillet: {
+    label: 'the skillet',
+    stars: [
+      [0.14, 0.36], [0.30, 0.23], [0.52, 0.20], [0.68, 0.29],
+      [0.74, 0.48], [0.62, 0.65], [0.40, 0.69], [0.20, 0.57],
+      [0.86, 0.67], [0.98, 0.84],                // handle
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,0],[4,8],[8,9]],
+  },
+  boomerang: {
+    label: 'the boomerang',
+    stars: [
+      [0.09, 0.13], [0.28, 0.30], [0.46, 0.52], [0.54, 0.72], [0.62, 0.93],
+      [0.83, 0.86], [0.70, 0.57], [0.52, 0.33], [0.32, 0.09], [0.16, 0.04],
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,0]],
+  },
+  cannon: {
+    label: 'the cannon',
+    stars: [
+      [0.02, 0.55], [0.32, 0.42], [0.66, 0.28],  // barrel, breech to muzzle
+      [0.70, 0.45], [0.36, 0.59], [0.05, 0.72],  // and back along the underside
+      [0.17, 0.92], [0.60, 0.92],                // carriage
+      [0.02, 1.00],                              // trail spike
+      [0.96, 0.12],                              // and the shot, already gone
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,0],[4,6],[6,7],[7,3],[6,8],[2,9]],
+  },
+  gavel: {
+    label: 'the gavel',
+    stars: [
+      [0.44, 0.02], [0.74, 0.14], [0.62, 0.38], [0.32, 0.26],  // head
+      [0.32, 0.46], [0.16, 0.62],                              // handle
+      [0.04, 0.72], [0.96, 0.72], [0.96, 0.94], [0.04, 0.94],  // block
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,0],[3,4],[4,5],[5,6],[6,7],[7,8],[8,9],[9,6]],
+  },
   hound: {
     label: 'the hound',
     stars: [
@@ -277,34 +571,114 @@ const SHAPES = {
   },
 };
 
+// Names too short to match on safely. Checked whole, before anything else —
+// "RC" is an RC car, but 'rc' as a substring would also swallow Arch, March
+// and Torch.
+const EXACT = {
+  rc: 'car',
+  tron: 'bolt',
+};
+
 // Keyword → shape. Checked as substrings against the lowercased F3 name, so
 // "Crawdaddy", "Mudbug" and "Craw" all land on the crawfish.
+//
+// Order matters: the first row with a hit wins. The block at the top exists
+// only to get in front of a broader keyword further down — Bullwinkle is a
+// moose, not a bull; Short Horn is cattle, not a ram; Buckshot is shot, not a
+// buck; and Old Town Road is a horse before it's a road.
 const KEYWORDS = [
-  [['craw', 'mudbug', 'crayfish', 'lobster', 'pinch'], 'crawfish'],
+  [['bullwinkle'], 'stag'],
+  [['short horn', 'shorthorn'], 'bull'],
+  [['buckshot'], 'arrow'],
+  [['old town road'], 'horse'],
+
+  [['craw', 'mudbug', 'crayfish', 'lobster', 'pinch', 'cajun', 'etouffee', 'boudin'], 'crawfish'],
   [['bear', 'grizzly', 'kodiak', 'yogi', 'honey'], 'bear'],
   [['wolf', 'lobo', 'howl', 'fang', 'coyote', 'fox'], 'wolf'],
   [['eagle', 'hawk', 'falcon', 'talon', 'raven', 'crow', 'osprey', 'wing'], 'eagle'],
   [['hammerhead', 'shark', 'jaws', 'mako', 'reef'], 'shark'],
-  [['fish', 'bass', 'trout', 'gill', 'minnow', 'bait', 'angler', 'tuna'], 'fish'],
-  [['bull', 'oxen', 'longhorn', 'taurus', 'steer', 'brahma'], 'bull'],
+  [['fish', 'bass', 'trout', 'gill', 'minnow', 'bait', 'angler', 'tuna',
+    'flounder', 'castaway', 'cast away', 'snapper', 'crappie', 'bream'], 'fish'],
+  [['bull', 'oxen', 'longhorn', 'taurus', 'steer', 'brahma', 'jersey', 'angus',
+    'hereford', 'brisket'], 'bull'],
   [['ram', 'goat', 'billy', 'horn'], 'ram'],
   [['scorpion', 'sting', 'scorp', 'venom'], 'scorpion'],
   [['turtle', 'tortoise', 'shell', 'terrapin', 'slow'], 'turtle'],
   [['rabbit', 'bunny', 'hare', 'hopper', 'jackrabbit'], 'rabbit'],
   [['stag', 'deer', 'buck', 'elk', 'antler', 'moose'], 'stag'],
-  [['owl', 'hoot', 'night', 'wise', 'professor'], 'owl'],
+  [['owl', 'hoot', 'nocturnal', 'wise', 'professor'], 'owl'],
   [['snake', 'viper', 'cobra', 'python', 'serpent', 'adder', 'mamba', 'rattle'], 'snake'],
   [['horse', 'mustang', 'stallion', 'colt', 'pony', 'bronco', 'saddle', 'gallop'], 'horse'],
-  [['lion', 'leo', 'mane', 'pride', 'tiger', 'panther', 'cat'], 'lion'],
-  [['frog', 'toad', 'tadpole', 'leap', 'ribbit'], 'frog'],
+  [['lion', 'leo', 'mane', 'pride', 'tiger', 'panther', 'cat', 'pard'], 'lion'],
+  [['frog', 'toad', 'tadpole', 'leap', 'ribbit', 'croak'], 'frog'],
   [['hammer', 'sledge', 'mallet', 'anvil', 'forge', 'thor'], 'hammer'],
   [['anchor', 'navy', 'sail', 'harbor', 'dock', 'skipper', 'buoy'], 'anchor'],
   [['axe', 'chop', 'timber', 'lumber', 'hatchet', 'splitter'], 'axe'],
   [['rocket', 'launch', 'nasa', 'orbit', 'astro', 'apollo', 'booster'], 'rocket'],
-  [['oak', 'tree', 'acorn', 'pine', 'cedar', 'branch'], 'oak'],
+  [['oak', 'tree', 'acorn', 'pine', 'cedar', 'branch', 'forest', 'forrest'], 'oak'],
   [['mountain', 'ridge', 'peak', 'summit', 'everest', 'sherpa', 'climb', 'granite', 'boulder'], 'mountain'],
-  [['arrow', 'archer', 'quiver', 'dart', 'sling', 'buckshot'], 'arrow'],
-  [['hound', 'beagle', 'labrador', 'retriever', 'mutt', 'bark', 'puppy'], 'hound'],
+  [['arrow', 'archer', 'quiver', 'dart', 'sling'], 'arrow'],
+  [['hound', 'beagle', 'labrador', 'retriever', 'mutt', 'bark', 'puppy',
+    'doodle', 'poodle', 'shepherd', 'collie', 'terrier', 'kennel'], 'hound'],
+
+  // ── the second wave: fewer creatures, more of what men actually get named ──
+  [['bolt', 'jolt', 'spark', 'circuit', 'lightning', 'volt', 'watt',
+    'thunder', 'shock', 'flicker'], 'bolt'],
+  [['boot', 'bootleg', 'cleat', 'stirrup', 'wader', 'galosh'], 'boot'],
+  [['bluebonnet', 'sweet pea', 'sweetpea', 'jasmine', 'belle', 'rose', 'daisy',
+    'petal', 'bloom', 'blossom', 'flower', 'lily', 'tulip', 'magnolia'], 'flower'],
+  [['plane', 'layover', 'pilot', 'aviator', 'jet', 'cockpit', 'hangar',
+    'boeing', 'cessna', 'mayday', 'tailwind'], 'plane'],
+  [['train', 'trayn', 'boxcar', 'caboose', 'locomotive', 'railroad', 'track',
+    'freight', 'conductor', 'depot'], 'train'],
+  [['racecar', 'nascar', 'hilux', 'roadrash', 'road rash', 'roadkill',
+    'road kill', 'wheel', 'grand prix', 'camaro', 'corvette', 'turbo',
+    'muffler', 'hubcap', 'chevy', 'jalopy'], 'car'],
+  [['gear', 'gasket', 'timing belt', 'cog', 'sprocket', 'clutch', 'piston',
+    'drill', 'ratchet', 'camshaft', 'torque'], 'gear'],
+  [['frodo', 'baggins', 'tolkien', 'hobbit', 'gandalf', 'gollum', 'loop',
+    'bling', 'wedding ring'], 'ring'],
+  [['notebook', 'bookie', 'book', 'novel', 'library', 'chapter', 'paperback',
+    'librarian'], 'book'],
+  [['drum', 'bongo', 'treble', 'cymbal', 'snare', 'tempo', 'metronome',
+    'ringo', 'backbeat'], 'drum'],
+  [['shroom', 'mushroom', 'fungi', 'morel', 'truffle', 'portobello'], 'mushroom'],
+  [['greek', 'socrates', 'plato', 'roman', 'athens', 'sparta', 'pillar',
+    'column', 'toga', 'parthenon', 'stoic'], 'column'],
+  [['knife', 'blade', 'whittle', 'shred', 'peeler', 'rambo', 'first blood',
+    'machete', 'cleaver', 'shiv', 'paring'], 'knife'],
+  [['ticker', 'heart', 'cardio', 'pulse', 'valve', 'aorta', 'cupid',
+    'sweetheart'], 'heart'],
+  [['sandwich', 'hoagie', 'deli', 'hot pocket', 'hotpocket', 'doubledouble',
+    'double double', 'panini', 'reuben', 'blt', 'grinder', 'po boy'], 'sandwich'],
+  [['waffle', 'flapjack', 'pancake', 'griddle', 'syrup', 'ihop',
+    'short stack'], 'waffle'],
+  [['candy', 'peppermint', 'lollipop', 'sweet tooth', 'gumdrop',
+    'north pole'], 'candycane'],
+  [['pepper', 'reaper', 'jalapeno', 'habanero', 'veggie', 'sriracha',
+    'chili', 'scoville', 'poblano', 'tabasco'], 'pepper'],
+  [['spoon', 'ladle', 'spatula', 'whisk', 'stirrer'], 'spoon'],
+  [['paw', 'claw', 'pounce', 'pawprint'], 'paw'],
+  [['house', 'shiplap', 'dorothy', 'homeboy', 'dreamhouse', 'cabin', 'porch',
+    'shingle', 'bungalow', 'homestead', 'realtor'], 'house'],
+  [['wilson', 'gronk', 'man u', 'man utd', 'gridiron', 'touchdown', 'quarterback',
+    'pigskin', 'football', 'soccer', 'fumble', 'punter', 'tailgate',
+    'hail mary'], 'football'],
+  [['duck', 'daffy', 'quack', 'quak', 'goose', 'g00se', 'mallard', 'drake',
+    'waddle', 'gander', 'gizzard'], 'duck'],
+  [['yeti', 'bigfoot', 'sasquatch', 'footprint', 'twinkle toes', 'barefoot',
+    'walk on', 'gump', 'tread', 'trailhead', 'flat foot'], 'footprint'],
+  [['iceberg', 'glacier', 'titanic', 'arctic', 'tundra', 'frostbite',
+    'permafrost', 'floe'], 'iceberg'],
+  [['baguette', 'sourdough', 'ciabatta', 'french bread', 'croissant',
+    'boule', 'brioche'], 'baguette'],
+  [['skillet', 'huevos', 'fajita', 'cast iron', 'omelet', 'scramble',
+    'sizzle', 'hash brown', 'griddy'], 'skillet'],
+  [['boomerang', 'outback', 'didgeridoo', 'walkabout', 'down under'], 'boomerang'],
+  [['cannon', 'arsenal', 'artillery', 'howitzer', 'gunner', 'musket',
+    'mortar', 'broadside'], 'cannon'],
+  [['gavel', 'objection', 'judge', 'verdict', 'bailiff', 'subpoena', 'contempt',
+    'overrule'], 'gavel'],
 ];
 
 // Shapes eligible for the hash fallback — creatures first, since a guy with a
@@ -324,16 +698,28 @@ function hash(str) {
   return h >>> 0;
 }
 
-/** Pick the shape key for an F3 name. Deterministic — same name, same sky. */
-export function shapeKeyFor(f3Name) {
+/**
+ * Pick the shape for an F3 name, and say why.
+ *
+ * `via` is the word that earned it, or null when nothing matched and the name
+ * fell through to the hashed creature list. Deterministic — same name, same
+ * sky, on every device.
+ */
+export function shapeMatchFor(f3Name) {
   const n = String(f3Name || '').toLowerCase().trim();
-  if (!n) return FALLBACK[0];
+  if (!n) return { key: FALLBACK[0], via: null };
+  if (EXACT[n]) return { key: EXACT[n], via: n };
   for (const [words, key] of KEYWORDS) {
     for (const w of words) {
-      if (n.includes(w)) return key;
+      if (n.includes(w)) return { key, via: w };
     }
   }
-  return FALLBACK[hash(n) % FALLBACK.length];
+  return { key: FALLBACK[hash(n) % FALLBACK.length], via: null };
+}
+
+/** Just the shape key for an F3 name. */
+export function shapeKeyFor(f3Name) {
+  return shapeMatchFor(f3Name).key;
 }
 
 /** The full shape record for an F3 name: key, label, stars, edges. */

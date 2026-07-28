@@ -20,7 +20,7 @@ index.html            markup: sky canvas, top bar, goal dock, sign-in gate
 styles.css            all styling
 js/config.js          ← your Firebase project goes here
 js/data.js            auth + Firestore reads and writes
-js/constellations.js  the 25 shapes, and F3-name → shape matching
+js/constellations.js  the 55 shapes, and F3-name → shape matching
 js/sky.js             canvas renderer: fire, logs, embers, constellations
 js/app.js             app flow, state, and the goal list
 js/editor.js          connect-the-dots constellation editor
@@ -181,15 +181,25 @@ instead of pushing the fire up into the trees.
 
 ### Constellations
 
-`js/constellations.js` holds 25 shapes and matches an F3 name against a keyword
+`js/constellations.js` holds 55 shapes and matches an F3 name against a keyword
 list — `craw`/`mudbug` → crawfish, `sherpa`/`summit`/`ridge` → mountain ridge,
-`sledge`/`anvil` → hammer, and so on. A name that matches nothing gets a
-creature picked by hashing the name, so it's stable: the same name always draws
-the same shape.
+`gasket`/`timing belt` → cog, `frodo`/`tolkien` → ring, and so on. Half the
+shapes are creatures, half are the objects men actually get named after: a
+lightning bolt, a boot, a waffle, a locomotive, a gavel. A name that matches
+nothing gets a creature picked by hashing the name, so it's stable: the same
+name always draws the same shape.
+
+Order matters in `KEYWORDS` — the first row with a hit wins — so the block at
+the top exists to get in front of a broader keyword further down (Bullwinkle is
+a moose, not a bull). `EXACT` handles names too short to match on safely: "RC"
+is an RC car, but `rc` as a substring would also swallow Arch and Torch.
+`shapeMatchFor()` returns the word that earned the match, which is what the
+coverage check reads.
 
 To add a shape, add an entry to `SHAPES` (stars in a 0..1 box, edges between
 them, head at the top) and a row to `KEYWORDS`. It must have **exactly ten
-stars** — see How goals map to stars.
+stars**, every star must touch at least one edge, and the edges must form one
+connected figure — see How goals map to stars.
 
 ### Drawing your own
 
