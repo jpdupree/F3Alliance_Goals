@@ -12,13 +12,33 @@
 
 import { firebaseConfig, FIREBASE_VERSION as V } from './config.js';
 
-const base = `https://www.gstatic.com/firebasejs/${V}`;
+// Try the pinned SDK first, then known-good releases. The app only uses long
+// stable APIs, so any of these work — this just means a version that has been
+// pulled from the CDN degrades to "loads a different build" instead of a dead
+// white page.
+const VERSIONS = [...new Set([V, '11.6.0', '12.3.0', '10.14.1'])];
 
-const [appMod, authMod, dbMod] = await Promise.all([
-  import(`${base}/firebase-app.js`),
-  import(`${base}/firebase-auth.js`),
-  import(`${base}/firebase-firestore.js`),
-]);
+async function loadSdk() {
+  let lastErr;
+  for (const v of VERSIONS) {
+    const base = `https://www.gstatic.com/firebasejs/${v}`;
+    try {
+      return await Promise.all([
+        import(`${base}/firebase-app.js`),
+        import(`${base}/firebase-auth.js`),
+        import(`${base}/firebase-firestore.js`),
+      ]);
+    } catch (err) {
+      lastErr = err;
+    }
+  }
+  throw new Error(
+    `Couldn't load the Firebase SDK from Google's CDN (tried ${VERSIONS.join(', ')}). ` +
+    `Check the connection, or set FIREBASE_VERSION in js/config.js. ${lastErr?.message || ''}`,
+  );
+}
+
+const [appMod, authMod, dbMod] = await loadSdk();
 
 const app = appMod.initializeApp(firebaseConfig);
 const auth = authMod.getAuth(app);
