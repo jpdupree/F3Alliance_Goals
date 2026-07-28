@@ -147,6 +147,26 @@ neighbour and it comes to the middle instead. Finishing one of your own goals
 brings your constellation round automatically so you actually see the ember
 land. The `?` button explains the metaphor to anyone who lands cold.
 
+### The fire
+
+Two different things drive it, deliberately:
+
+- **Width** tracks what's outstanding. The pile widens as the crew throws more
+  logs on, and the flames and the ground glow follow it.
+- **Brightness** tracks what the crew has knocked down over the season, on a
+  curve that keeps climbing but never runs away.
+
+The pile draws up to `LOG_CAP` logs (24) laid in tiers, widening the tiers as
+the count grows rather than just stacking higher. Past that the extra is stated
+in words — "+13 more on the pile" — since two dozen sticks is already reading as
+a big fire and more would just be a wall of timber. Raise `LOG_CAP` in
+`js/sky.js` if you want more of them drawn.
+
+The treeline stands at 78% of the sky band and the fire at 92%, so the pile sits
+on the near ground with the trees behind it. Both are measured against the
+*usable* height, so opening the dock banks the whole scene down together
+instead of pushing the fire up into the trees.
+
 ### Constellations
 
 `js/constellations.js` holds 25 shapes and matches an F3 name against a keyword

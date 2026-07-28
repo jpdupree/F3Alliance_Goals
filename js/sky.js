@@ -122,8 +122,15 @@ export function createSky(canvas) {
     layout();
   }
 
+  /** Where the treeline stands. The fire is well in front of it. */
+  function groundY() {
+    return TOP_INSET + (usableH() - TOP_INSET) * 0.78;
+  }
+
   function fireOrigin() {
-    return { x: W / 2, y: TOP_INSET + (usableH() - TOP_INSET) * 0.90 };
+    // Below the treeline, so the pile sits on the near ground rather than
+    // looking like it's burning among the trees.
+    return { x: W / 2, y: TOP_INSET + (usableH() - TOP_INSET) * 0.92 };
   }
 
   // The fire is the anchor of the scene, so its parts grow with the space it
@@ -146,11 +153,17 @@ export function createSky(canvas) {
    * and a wide one, but never leaving a lake of empty sky on a phone.
    */
   function captionY() {
-    const under = slotCentreY() + slotSize() / 2;
-    const wanted = under + clamp(W * 0.02, 18, 34);
-    // Never let it sit in the flames, but never above the constellation either.
-    const clearOfFire = fireOrigin().y - 140 * fireScale();
-    return clamp(wanted, under + 8, Math.max(clearOfFire, under + 8));
+    return slotCentreY() + slotSize() / 2 + clamp(W * 0.02, 18, 34);
+  }
+
+  /**
+   * Opening the dock squeezes the sky until there is genuinely no room for the
+   * constellation, its caption and the fire all at once. Rather than shuffle
+   * them into each other, the caption fades away — with the dock up you're
+   * working through your logs, not reading the sky.
+   */
+  function captionAlpha() {
+    return clamp(1 - (bottomInset - BASE_INSET) / 170, 0, 1);
   }
 
   /** One constellation, as large as the screen sensibly allows. */
@@ -361,7 +374,7 @@ export function createSky(canvas) {
   }
 
   function drawGround() {
-    const y = TOP_INSET + (usableH() - TOP_INSET) * 0.955;
+    const y = groundY();
     const g = ctx.createLinearGradient(0, y - 40, 0, H);
     g.addColorStop(0, 'rgba(8,7,10,0.0)');
     g.addColorStop(0.5, 'rgba(8,7,10,0.85)');
@@ -376,7 +389,7 @@ export function createSky(canvas) {
     ctx.fillStyle = '#04050a';
     const step = Math.max(W * 0.022, 16);
     for (let x = -W * 0.1; x < W * 1.1; x += step * (0.55 + rnd() * 0.9)) {
-      const h = (0.045 + Math.pow(rnd(), 1.6) * 0.115) * H;
+      const h = (0.055 + Math.pow(rnd(), 1.6) * 0.14) * (usableH() - TOP_INSET);
       const w = h * (0.30 + rnd() * 0.16);
       const base = y + h * 0.06;
       ctx.beginPath();
@@ -402,6 +415,28 @@ export function createSky(canvas) {
     ctx.fillRect(-W, y, W * 3, H - y + 40);
   }
 
+  // How many logs the pile can actually show. Past this the fire would be a
+  // wall of timber, so the overflow is stated in words instead.
+  const LOG_CAP = 24;
+
+  /**
+   * The pile's shape for the number of logs currently on it. Wider as the crew
+   * piles more on, which the flames and the glow then follow — so the fire's
+   * *width* tracks what's outstanding while its *brightness* tracks what the
+   * crew has knocked down over the season. Two different things, two signals.
+   */
+  function pileMetrics() {
+    const shown = Math.min(stats.openLogs, LOG_CAP);
+    const perTier = clamp(Math.round(Math.sqrt(Math.max(shown, 1) * 1.7)), 3, 7);
+    const fs = fireScale();
+    return {
+      shown,
+      perTier,
+      width: (40 + perTier * 13) * fs,
+      fs,
+    };
+  }
+
   function fireIntensity() {
     // Asymptotic: the fire always burns, and every achievement adds less than
     // the one before — but the crew's season total keeps pushing it up.
@@ -412,7 +447,7 @@ export function createSky(canvas) {
     const o = fireOrigin();
     const k = fireIntensity();
     const flick = reduceMotion ? 1 : 0.94 + 0.06 * Math.sin(time * 7.3) + 0.03 * Math.sin(time * 13.1);
-    const r = Math.min(W, H) * (0.34 + 0.26 * k) * flick;
+    const r = (Math.min(W, usableH()) * (0.26 + 0.22 * k) + pileMetrics().width * 1.6) * flick;
 
     ctx.globalCompositeOperation = 'lighter';
     const g = ctx.createRadialGradient(o.x, o.y - 30, 0, o.x, o.y - 30, r);
@@ -429,18 +464,20 @@ export function createSky(canvas) {
 
   function drawLogs() {
     const o = fireOrigin();
-    const count = Math.min(stats.openLogs, 16);
-    const fs = fireScale();
-    for (let i = 0; i < count; i++) {
+    const { shown, perTier, width, fs } = pileMetrics();
+    for (let i = 0; i < shown; i++) {
       const r2 = mulberry32(1000 + i * 7919);
-      const tier = Math.floor(i / 4);
-      const inTier = i % 4;
-      const spread = (68 - tier * 8) * fs;
-      const x = o.x + (inTier - 1.5) * (spread / 2) + (r2() - 0.5) * 10 * fs;
-      const y = o.y - tier * 11 * fs - 2;
-      const len = (78 - tier * 7 + r2() * 13) * fs;
-      const thick = (11 - tier * 0.8) * fs;
-      const ang = (tier % 2 === 0 ? 1 : -1) * (0.18 + r2() * 0.5) + (inTier - 1.5) * 0.06;
+      const tier = Math.floor(i / perTier);
+      const inTier = i % perTier;
+      const inRow = Math.min(perTier, shown - tier * perTier);
+      const tierW = width * (1 - tier * 0.12);
+      const step = tierW / Math.max(inRow, 1);
+      const x = o.x + (inTier - (inRow - 1) / 2) * step + (r2() - 0.5) * 8 * fs;
+      const y = o.y - tier * 10 * fs - 2;
+      const len = tierW * (0.80 + r2() * 0.24);
+      const thick = (11.5 - perTier * 0.6) * fs;
+      const ang = (tier % 2 === 0 ? 1 : -1) * (0.16 + r2() * 0.46)
+                  + (inTier - (inRow - 1) / 2) * 0.05;
 
       ctx.save();
       ctx.translate(x, y);
@@ -465,11 +502,11 @@ export function createSky(canvas) {
       ctx.restore();
     }
 
-    if (stats.openLogs > count) {
+    if (stats.openLogs > shown) {
       ctx.fillStyle = 'rgba(255,205,150,0.5)';
       ctx.font = `600 ${Math.round(12 * fs)}px ui-sans-serif, system-ui, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(`+${stats.openLogs - count} more on the pile`, o.x, o.y + 34 * fs);
+      ctx.fillText(`+${stats.openLogs - shown} more on the pile`, o.x, o.y + 42 * fs);
       ctx.textAlign = 'left';
     }
   }
@@ -482,8 +519,8 @@ export function createSky(canvas) {
       if (n < 1 && Math.random() > n) break;
       n -= 1;
       const o = fireOrigin();
-      const fs = fireScale();
-      const spread = (38 + 26 * k) * fs;
+      const { width, fs } = pileMetrics();
+      const spread = width * 0.95 + 16 * k * fs;
       flames.push({
         x: o.x + (Math.random() - 0.5) * spread,
         y: o.y - (6 + Math.random() * 12) * fs,
@@ -530,9 +567,9 @@ export function createSky(canvas) {
     const k = fireIntensity();
     if (Math.random() < dt * (reduceMotion ? 3 : 11) * k) {
       const o = fireOrigin();
-      const fs = fireScale();
+      const { width, fs } = pileMetrics();
       ambient.push({
-        x: o.x + (Math.random() - 0.5) * 84 * fs,
+        x: o.x + (Math.random() - 0.5) * width * 1.1,
         y: o.y - (20 + Math.random() * 30) * fs,
         vy: -(28 + Math.random() * 46) * fs,
         sway: Math.random() * TAU,
@@ -754,17 +791,19 @@ export function createSky(canvas) {
 
       // Only the centred one is captioned; the neighbours stay quiet.
       if (!isCentre) continue;
+      const ca = captionAlpha();
+      if (ca <= 0.02) continue;
       const litCount = m.litStars.size;
       const fs = clamp(W * 0.028, 16, 27);
       const y = captionY();
 
       ctx.textAlign = 'center';
       ctx.font = `700 ${fs}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-      ctx.fillStyle = m.complete ? col(0.98, tone.l + 16) : `rgba(232,239,252,${0.94 * dim})`;
+      ctx.fillStyle = m.complete ? col(0.98 * ca, tone.l + 16) : `rgba(232,239,252,${0.94 * dim * ca})`;
       ctx.fillText(m.f3Name, W / 2, y);
 
       ctx.font = `500 ${fs * 0.6}px ui-sans-serif, system-ui, sans-serif`;
-      ctx.fillStyle = m.complete ? col(0.8, tone.l + 8) : `rgba(180,194,222,${0.78 * dim})`;
+      ctx.fillStyle = m.complete ? col(0.8 * ca, tone.l + 8) : `rgba(180,194,222,${0.78 * dim * ca})`;
       ctx.fillText(
         m.complete ? `${m.shape.label} — fully lit`
                    : `${litCount} of ${m.points.length} · ${m.shape.label}`,
@@ -777,7 +816,8 @@ export function createSky(canvas) {
   /** Which one of how many, and which way to swipe. */
   function drawCarouselChrome() {
     const n = members.length;
-    if (n < 2) return;
+    const ca = captionAlpha();
+    if (n < 2 || ca <= 0.02) return;
     const i = centreIndex();
     const fs = clamp(W * 0.028, 16, 27);
     const y = captionY() + fs * 1.6;
@@ -787,7 +827,7 @@ export function createSky(canvas) {
       const x0 = W / 2 - ((n - 1) * gap) / 2;
       for (let k = 0; k < n; k++) {
         const on = k === i;
-        ctx.fillStyle = on ? 'rgba(255,190,120,.95)' : 'rgba(190,205,235,.26)';
+        ctx.fillStyle = on ? `rgba(255,190,120,${0.95 * ca})` : `rgba(190,205,235,${0.26 * ca})`;
         ctx.beginPath();
         ctx.arc(x0 + k * gap, y, on ? 3.2 : 2.1, 0, TAU);
         ctx.fill();
@@ -795,7 +835,7 @@ export function createSky(canvas) {
     } else {
       ctx.textAlign = 'center';
       ctx.font = '600 12px ui-sans-serif, system-ui, sans-serif';
-      ctx.fillStyle = 'rgba(190,205,235,.5)';
+      ctx.fillStyle = `rgba(190,205,235,${0.5 * ca})`;
       ctx.fillText(`${i + 1} of ${n}`, W / 2, y + 4);
       ctx.textAlign = 'left';
     }
@@ -803,7 +843,7 @@ export function createSky(canvas) {
     // Faint chevrons so it's obvious there's more either side.
     const cy = slotCentreY();
     const inset = Math.min(22, W * 0.045);
-    ctx.strokeStyle = 'rgba(200,214,240,.22)';
+    ctx.strokeStyle = `rgba(200,214,240,${0.22 * ca})`;
     ctx.lineWidth = 2;
     ctx.lineCap = 'round';
     for (const dir of [-1, 1]) {
