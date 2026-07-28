@@ -1,7 +1,9 @@
 // The night sky: campfire, log pile, embers and everyone's constellations.
 //
-// Rendered on one 2D canvas in "world" coordinates (CSS pixels of the canvas)
-// with a lerped camera on top, so tapping a constellation can push in on it.
+// One 2D canvas. The constellations sit on a horizontal carousel — one centred,
+// its neighbours peeking in at the edges — and the starfield behind them wheels
+// a few degrees as you swipe, so moving along the crew feels like turning to
+// look at a different part of the sky.
 
 import { shapeByKey } from './constellations.js';
 
@@ -54,9 +56,13 @@ export function createSky(canvas) {
   let travelers = [];        // achievement embers in flight
   let bursts = [];           // ignite flashes
   let selectedUid = null;
-  const listeners = { select: [] };
+  const listeners = { select: [], focus: [] };
 
-  const cam = { x: 0, y: 0, s: 1, tx: 0, ty: 0, ts: 1 };
+  // The sky is a carousel: one constellation centred, its neighbours peeking
+  // in at the edges, and the starfield wheeling a little as you swipe.
+  let scroll = 0;          // float position, in slots
+  let scrollTarget = 0;    // integer slot we're easing toward
+  let centred = 0;         // last announced centre, for the focus event
   let last = performance.now();
   let time = 0;
   let raf = 0;
@@ -71,7 +77,6 @@ export function createSky(canvas) {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     seedBackground();
     layout();
-    if (!selectedUid) resetCamera(true);
   }
 
   function seedBackground() {
@@ -127,45 +132,69 @@ export function createSky(canvas) {
     return clamp(Math.min(W, H) / 700, 0.85, 1.8);
   }
 
-  // ── layout ────────────────────────────────────────────────────────────
-  // Constellations get a loose grid in the upper sky, jittered per-uid so it
-  // reads as a night sky rather than a spreadsheet.
+  // ── carousel layout ───────────────────────────────────────────────────
+  function bandTop() { return TOP_INSET + 8; }
+  function bandHeight() { return Math.max((usableH() - TOP_INSET) * 0.68, 140); }
+
+  /** Vertical middle of the constellation row. */
+  function slotCentreY() { return bandTop() + bandHeight() * 0.42; }
+
+  /**
+   * The caption tucks just under the constellation frame — a fixed height for
+   * the viewport, so it doesn't jump about as you swipe between a tall shape
+   * and a wide one, but never leaving a lake of empty sky on a phone.
+   */
+  function captionY() {
+    return slotCentreY() + slotSize() / 2 + clamp(W * 0.02, 18, 34);
+  }
+
+  /** One constellation, as large as the screen sensibly allows. */
+  function slotSize() {
+    return Math.min(W * 0.66, bandHeight() * 0.70);
+  }
+
+  /**
+   * Gap between neighbours. Tuned so a wide screen shows the edges of the two
+   * either side and a phone shows a sliver — the neighbour is a hint that
+   * there's more sky, not something you're meant to read.
+   */
+  function slotGap() {
+    return Math.max(slotSize() * 1.25, W * 0.42);
+  }
+
+  /** Shortest signed distance from slot i to the scroll position, wrapping. */
+  function wrapDelta(d, n) {
+    if (n <= 1) return d;
+    const half = n / 2;
+    let x = (d + half) % n;
+    if (x < 0) x += n;
+    return x - half;
+  }
+
+  // Recomputed every frame — the whole point is that it moves.
   function layout() {
     const n = members.length;
     if (!n || !W) return;
 
-    const Hu = usableH();
-    const top = TOP_INSET + 10;
-    const bottom = top + Math.max((Hu - TOP_INSET) * 0.66, 120);
-    const left = W * 0.04;
-    const right = W * 0.96;
-    const areaW = right - left;
-    const areaH = bottom - top;
-
-    const cols = Math.max(1, Math.round(Math.sqrt(n * (areaW / Math.max(areaH, 1)))));
-    const rows = Math.ceil(n / cols);
-    const cellW = areaW / cols;
-    const cellH = areaH / rows;
-    const size = Math.min(cellW, cellH) * 0.70;
+    const size = slotSize();
+    const gap = slotGap();
+    const cy = slotCentreY();
 
     members.forEach((m, i) => {
-      const col = i % cols;
-      const row = Math.floor(i / cols);
-      const inRow = Math.min(cols, n - row * cols);
-      const rowW = inRow * cellW;
-      const rowLeft = left + (areaW - rowW) / 2;
+      const d = wrapDelta(i - scroll, n);
+      const ad = Math.abs(d);
+      // Off-centre ones sit a touch lower and smaller, as if on a dome.
+      const drop = Math.min(ad, 2.2) ** 2 * size * 0.075;
+      const scale = 1 - Math.min(ad, 1.6) * 0.13;
+      const s = size * scale;
+      const x = W / 2 + d * gap;
 
-      const rnd = mulberry32(hashStr(m.uid));
-      const jx = (rnd() - 0.5) * cellW * 0.22;
-      const jy = (rnd() - 0.5) * cellH * 0.22;
-
-      const cx = rowLeft + col * cellW + cellW / 2 + jx;
-      const cy = top + row * cellH + cellH / 2 + jy;
-
-      m.box = { x: cx - size / 2, y: cy - size / 2, w: size, h: size };
+      m.d = d;
+      m.alpha = clamp(1 - ad * 0.62, 0.1, 1);
+      m.box = { x: x - s / 2, y: cy - s / 2 + drop, w: s, h: s };
       m.points = m.shape.stars.map(([sx, sy]) => ({
-        x: m.box.x + sx * size,
-        y: m.box.y + sy * size,
+        x: m.box.x + sx * s,
+        y: m.box.y + sy * s,
       }));
     });
   }
@@ -179,6 +208,7 @@ export function createSky(canvas) {
    */
   function setState(nextMembers, nextStats) {
     const prev = new Map(members.map((m) => [m.uid, m]));
+    const wasAt = members.findIndex((m) => m.uid === anchorUid);
     members = nextMembers.map((m, i) => {
       // A hand-drawn shape wins over the one picked from the F3 name.
       const shape = m.customShape || shapeByKey(m.shapeKey);
@@ -197,41 +227,44 @@ export function createSky(canvas) {
       };
     });
     stats = { ...stats, ...nextStats };
-    layout();
-    if (selectedUid && !members.some((m) => m.uid === selectedUid)) {
-      selectedUid = null;
-      resetCamera();
+    // Somebody joining or leaving shouldn't slide the sky out from under you:
+    // if whoever was centred moved in the list, shift by the same amount.
+    const n = members.length;
+    const nowAt = members.findIndex((m) => m.uid === anchorUid);
+    if (n && wasAt >= 0 && nowAt >= 0 && nowAt !== wasAt) {
+      const delta = nowAt - wasAt;
+      scroll += delta;
+      scrollTarget += delta;
     }
+    layout();
+    if (selectedUid && !members.some((m) => m.uid === selectedUid)) selectedUid = null;
   }
 
-  // ── camera ────────────────────────────────────────────────────────────
-  function resetCamera(instant = false) {
-    cam.tx = 0; cam.ty = 0; cam.ts = 1;
-    if (instant) { cam.x = 0; cam.y = 0; cam.s = 1; }
+  // ── moving through the sky ────────────────────────────────────────────
+  let anchorUid = null;
+
+  function centreIndex() {
+    const n = members.length;
+    if (!n) return 0;
+    return ((Math.round(scroll) % n) + n) % n;
   }
 
+  function step(dir) {
+    if (members.length < 2) return;   // nowhere to go
+    scrollTarget = Math.round(scrollTarget) + dir;
+  }
+
+  /** Bring a man's constellation to the middle by the shortest way round. */
   function focusMember(uid, instant = false) {
-    const m = members.find((x) => x.uid === uid);
-    if (!m || !m.box) return;
+    const i = members.findIndex((m) => m.uid === uid);
+    if (i < 0) return;
     selectedUid = uid;
-    const pad = 2.1;
-    const band = Math.max(usableH() - TOP_INSET, 160);
-    const s = clamp(Math.min(W / (m.box.w * pad), (band * 0.62) / (m.box.h * pad)), 1, 3.2);
-    const cx = m.box.x + m.box.w / 2;
-    const cy = m.box.y + m.box.h / 2;
-    cam.ts = s;
-    cam.tx = W / 2 - cx * s;
-    cam.ty = TOP_INSET + band * 0.34 - cy * s;
-    if (instant) { cam.s = cam.ts; cam.x = cam.tx; cam.y = cam.ty; }
+    scrollTarget = Math.round(scroll) + wrapDelta(i - Math.round(scroll), members.length);
+    if (instant) scroll = scrollTarget;
   }
 
   function clearFocus() {
     selectedUid = null;
-    resetCamera();
-  }
-
-  function worldFromScreen(px, py) {
-    return { x: (px - cam.x) / cam.s, y: (py - cam.y) / cam.s };
   }
 
   // ── achievement ember ─────────────────────────────────────────────────
@@ -289,7 +322,23 @@ export function createSky(canvas) {
     ctx.fillRect(0, 0, W, H);
   }
 
+  /** How far the sky has turned, in radians. A gentle few degrees per swipe. */
+  function skyAngle() {
+    return -scroll * (reduceMotion ? 0 : 0.055);
+  }
+
   function drawBgStars() {
+    // Wheel about a pole well below the horizon, so stars near the top swing
+    // further than those near the ground — the way a real sky turns.
+    const ang = skyAngle();
+    ctx.save();
+    if (ang) {
+      const px = W / 2;
+      const py = usableH() * 1.45;
+      ctx.translate(px, py);
+      ctx.rotate(ang);
+      ctx.translate(-px, -py);
+    }
     for (const s of bgStars) {
       const tw = reduceMotion ? 1 : 0.72 + 0.28 * Math.sin(time * s.sp + s.tw);
       ctx.globalAlpha = s.a * tw;
@@ -299,6 +348,7 @@ export function createSky(canvas) {
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   function drawGround() {
@@ -522,6 +572,11 @@ export function createSky(canvas) {
         continue;
       }
 
+      // Re-read the target each frame: the constellation may be sliding past
+      // while the ember is still on its way up.
+      const tgt = members.find((x2) => x2.uid === e.uid)?.points?.[e.starIndex];
+      if (tgt) { e.to.x = tgt.x; e.to.y = tgt.y; }
+
       const t = easeOut(e.t);
       const x = quad(e.from.x, e.mid.x, e.to.x, t);
       const y = quad(e.from.y, e.mid.y, e.to.y, t);
@@ -582,8 +637,8 @@ export function createSky(canvas) {
   function drawConstellations(dt) {
     for (const m of members) {
       if (!m.points) continue;
-      const isSel = selectedUid === m.uid;
-      const dim = selectedUid && !isSel ? 0.35 : 1;
+      const dim = m.alpha ?? 1;
+      const isCentre = Math.abs(m.d ?? 0) < 0.5;
       const tone = m.tone;
       const col = (a, l = tone.l) => `hsla(${tone.h},${tone.s}%,${l}%,${a * dim})`;
 
@@ -676,25 +731,68 @@ export function createSky(canvas) {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // label
+      // Only the centred one is captioned; the neighbours stay quiet.
+      if (!isCentre) continue;
       const litCount = m.litStars.size;
-      const fs = clamp(m.box.w * 0.105, 9, 15);
-      ctx.font = `600 ${fs}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.fillStyle = m.complete ? col(0.95, tone.l + 14) : `rgba(214,224,246,${(0.34 + 0.4 * (litCount / Math.max(m.points.length, 1))) * dim})`;
-      ctx.fillText(m.f3Name, m.box.x + m.box.w / 2, m.box.y + m.box.h + fs * 1.25);
+      const fs = clamp(W * 0.028, 16, 27);
+      const y = captionY();
 
-      // The species line needs room; in a tight grid it lands on the neighbour.
-      if (isSel || (m.complete && m.box.w > 130)) {
-        ctx.font = `500 ${fs * 0.78}px ui-sans-serif, system-ui, sans-serif`;
-        ctx.fillStyle = `rgba(180,194,222,${0.6 * dim})`;
-        const sub = m.complete
-          ? `${m.shape.label} — lit`
-          : `${litCount}/${m.points.length} · ${m.shape.label}`;
-        ctx.fillText(sub, m.box.x + m.box.w / 2, m.box.y + m.box.h + fs * 2.4);
-      }
+      ctx.textAlign = 'center';
+      ctx.font = `700 ${fs}px ui-sans-serif, system-ui, -apple-system, sans-serif`;
+      ctx.fillStyle = m.complete ? col(0.98, tone.l + 16) : `rgba(232,239,252,${0.94 * dim})`;
+      ctx.fillText(m.f3Name, W / 2, y);
+
+      ctx.font = `500 ${fs * 0.6}px ui-sans-serif, system-ui, sans-serif`;
+      ctx.fillStyle = m.complete ? col(0.8, tone.l + 8) : `rgba(180,194,222,${0.78 * dim})`;
+      ctx.fillText(
+        m.complete ? `${m.shape.label} — fully lit`
+                   : `${litCount} of ${m.points.length} · ${m.shape.label}`,
+        W / 2, y + fs * 0.92,
+      );
     }
     ctx.textAlign = 'left';
+  }
+
+  /** Which one of how many, and which way to swipe. */
+  function drawCarouselChrome() {
+    const n = members.length;
+    if (n < 2) return;
+    const i = centreIndex();
+    const fs = clamp(W * 0.028, 16, 27);
+    const y = captionY() + fs * 1.6;
+
+    if (n <= 14) {
+      const gap = 13;
+      const x0 = W / 2 - ((n - 1) * gap) / 2;
+      for (let k = 0; k < n; k++) {
+        const on = k === i;
+        ctx.fillStyle = on ? 'rgba(255,190,120,.95)' : 'rgba(190,205,235,.26)';
+        ctx.beginPath();
+        ctx.arc(x0 + k * gap, y, on ? 3.2 : 2.1, 0, TAU);
+        ctx.fill();
+      }
+    } else {
+      ctx.textAlign = 'center';
+      ctx.font = '600 12px ui-sans-serif, system-ui, sans-serif';
+      ctx.fillStyle = 'rgba(190,205,235,.5)';
+      ctx.fillText(`${i + 1} of ${n}`, W / 2, y + 4);
+      ctx.textAlign = 'left';
+    }
+
+    // Faint chevrons so it's obvious there's more either side.
+    const cy = slotCentreY();
+    const inset = Math.min(22, W * 0.045);
+    ctx.strokeStyle = 'rgba(200,214,240,.22)';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    for (const dir of [-1, 1]) {
+      const x = dir < 0 ? inset : W - inset;
+      ctx.beginPath();
+      ctx.moveTo(x + dir * 5, cy - 9);
+      ctx.lineTo(x - dir * 4, cy);
+      ctx.lineTo(x + dir * 5, cy + 9);
+      ctx.stroke();
+    }
   }
 
   // ── loop ──────────────────────────────────────────────────────────────
@@ -704,19 +802,25 @@ export function createSky(canvas) {
     time += dt;
     easeInsets(dt);
 
-    const k = 1 - Math.exp(-dt * 5);
-    cam.x = lerp(cam.x, cam.tx, k);
-    cam.y = lerp(cam.y, cam.ty, k);
-    cam.s = lerp(cam.s, cam.ts, k);
+    // Ease toward the target slot unless a finger is on it.
+    if (!dragging) {
+      scroll = lerp(scroll, scrollTarget, 1 - Math.exp(-dt * 8));
+      if (Math.abs(scrollTarget - scroll) < 0.001) scroll = scrollTarget;
+    }
+    layout();
+
+    const i = centreIndex();
+    if (members.length && i !== centred) {
+      centred = i;
+      anchorUid = members[i]?.uid || null;
+      listeners.focus.forEach((fn) => fn(anchorUid));
+    }
+    if (!anchorUid && members.length) anchorUid = members[i]?.uid || null;
 
     drawSkyBackdrop();
-
-    ctx.save();
-    ctx.translate(cam.x, cam.y);
-    ctx.scale(cam.s, cam.s);
-
     drawBgStars();
     drawConstellations(dt);
+    drawCarouselChrome();
     drawGlow();
     drawGround();
     drawLogs();
@@ -727,52 +831,116 @@ export function createSky(canvas) {
     drawTravelers(dt);
     drawBursts(dt);
 
-    ctx.restore();
-
     raf = requestAnimationFrame(frame);
   }
 
   // ── interaction ───────────────────────────────────────────────────────
   function hitTest(px, py) {
-    const w = worldFromScreen(px, py);
     let best = null, bestD = Infinity;
     for (const m of members) {
-      if (!m.box) continue;
-      const pad = m.box.w * 0.18;
-      const inside = w.x >= m.box.x - pad && w.x <= m.box.x + m.box.w + pad &&
-                     w.y >= m.box.y - pad && w.y <= m.box.y + m.box.h + pad * 2.2;
+      if (!m.box || Math.abs(m.d ?? 9) > 1.2) continue;
+      const pad = m.box.w * 0.16;
+      const inside = px >= m.box.x - pad && px <= m.box.x + m.box.w + pad &&
+                     py >= m.box.y - pad && py <= m.box.y + m.box.h + pad * 2.2;
       if (!inside) continue;
       const cx = m.box.x + m.box.w / 2;
       const cy = m.box.y + m.box.h / 2;
-      const d = (w.x - cx) ** 2 + (w.y - cy) ** 2;
+      const d = (px - cx) ** 2 + (py - cy) ** 2;
       if (d < bestD) { bestD = d; best = m; }
     }
     return best;
   }
 
-  let downAt = null;
+  let dragging = null;
+
   canvas.addEventListener('pointerdown', (e) => {
-    downAt = { x: e.clientX, y: e.clientY, t: performance.now() };
+    dragging = {
+      x: e.clientX, y: e.clientY, t: performance.now(),
+      from: scroll, moved: false, vx: 0, lastX: e.clientX, lastT: performance.now(),
+    };
+    canvas.setPointerCapture?.(e.pointerId);
   });
-  canvas.addEventListener('pointerup', (e) => {
-    if (!downAt) return;
-    const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
-    const held = performance.now() - downAt.t;
-    downAt = null;
-    if (moved > 12 || held > 600) return;
-    const rect = canvas.getBoundingClientRect();
-    const hit = hitTest(e.clientX - rect.left, e.clientY - rect.top);
-    if (hit) {
-      focusMember(hit.uid);
-      listeners.select.forEach((fn) => fn(hit.uid));
-    } else if (selectedUid) {
-      clearFocus();
-      listeners.select.forEach((fn) => fn(null));
-    }
-  });
+
   canvas.addEventListener('pointermove', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    canvas.style.cursor = hitTest(e.clientX - rect.left, e.clientY - rect.top) ? 'pointer' : 'default';
+    if (!dragging) {
+      const r = canvas.getBoundingClientRect();
+      canvas.style.cursor = hitTest(e.clientX - r.left, e.clientY - r.top) ? 'pointer' : 'grab';
+      return;
+    }
+    const dx = e.clientX - dragging.x;
+    const dy = e.clientY - dragging.y;
+    // Let a mostly-vertical drag through — the dock lives down there.
+    if (!dragging.moved && Math.abs(dx) > 8 && Math.abs(dx) > Math.abs(dy)) {
+      dragging.moved = true;
+    }
+    if (!dragging.moved) return;
+    if (members.length < 2) return;   // a lone constellation stays put
+    canvas.style.cursor = 'grabbing';
+
+    const now = performance.now();
+    const dt = Math.max(now - dragging.lastT, 1);
+    dragging.vx = (e.clientX - dragging.lastX) / dt;   // px per ms
+    dragging.lastX = e.clientX;
+    dragging.lastT = now;
+
+    scroll = dragging.from - dx / slotGap();
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    const d = dragging;
+    dragging = null;
+    canvas.style.cursor = 'grab';
+
+    if (!d.moved) {
+      // A tap: the centred one opens its card, a neighbour just comes over.
+      const r = canvas.getBoundingClientRect();
+      const hit = hitTest(e.clientX - r.left, e.clientY - r.top);
+      if (hit && Math.abs(hit.d) < 0.5) {
+        listeners.select.forEach((fn) => fn(hit.uid));
+      } else if (hit) {
+        focusMember(hit.uid);
+      } else {
+        listeners.select.forEach((fn) => fn(null));
+      }
+      return;
+    }
+
+    // Where to land. Rounding alone is too strict: dragging a third of the way
+    // across and letting go clearly means "next", and a quick flick means it
+    // even when the finger barely moved.
+    const moved = scroll - d.from;
+    const dir = moved !== 0 ? Math.sign(moved) : -Math.sign(d.vx || 0);
+    const flicked = Math.abs(d.vx) > 0.25;
+
+    if (Math.abs(moved) >= 0.5) {
+      scrollTarget = Math.round(scroll);            // dragged past halfway, maybe several
+    } else if (dir && (flicked || Math.abs(moved) > 0.25)) {
+      scrollTarget = Math.round(d.from) + dir;      // committed to the next one
+    } else {
+      scrollTarget = Math.round(d.from);            // not enough, settle back
+    }
+  }
+
+  canvas.addEventListener('pointerup', endDrag);
+  canvas.addEventListener('pointercancel', () => { dragging = null; });
+
+  canvas.addEventListener('wheel', (e) => {
+    const dx = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : (e.shiftKey ? e.deltaY : 0);
+    if (!dx) return;
+    e.preventDefault();
+    wheelAcc += dx;
+    if (Math.abs(wheelAcc) > 45) {
+      step(Math.sign(wheelAcc));
+      wheelAcc = 0;
+    }
+  }, { passive: false });
+  let wheelAcc = 0;
+
+  window.addEventListener('keydown', (e) => {
+    if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+    if (e.key === 'ArrowLeft') { step(-1); e.preventDefault(); }
+    if (e.key === 'ArrowRight') { step(1); e.preventDefault(); }
   });
 
   const ro = new ResizeObserver(resize);
@@ -786,6 +954,9 @@ export function createSky(canvas) {
     launchEmber,
     focusMember,
     clearFocus,
+    step,
+    centreUid: () => members[centreIndex()]?.uid || null,
+    position: () => ({ scroll, target: scrollTarget, index: centreIndex(), dragging: !!dragging }),
     on(evt, fn) { listeners[evt]?.push(fn); },
     destroy() { cancelAnimationFrame(raf); ro.disconnect(); },
   };

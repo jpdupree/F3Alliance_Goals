@@ -130,9 +130,22 @@ Send that to the crew. Each guy signs in with Google, enters his F3 name once
 — he sees his constellation before he commits to it — and takes a seat. From
 then on he adds his own goals in the dock at the bottom and checks them off.
 
-Tap any constellation to push in on it and see whose it is and what he's set.
-Tap the sky to pull back out. The `?` button explains the metaphor to anyone
-who lands cold.
+### Moving through the sky
+
+The constellations sit on a carousel: one centred and large, its neighbours
+peeking in from the edges — most of them on a wide screen, a sliver on a phone.
+Swipe or drag sideways to move along the crew, or use the arrow keys. Dots under
+the name show where you are.
+
+The starfield behind wheels a few degrees with each step, turning about a pole
+below the horizon so stars near the top swing further than those near the
+ground. The fire and the treeline stay put — you're turning to look at a
+different part of the sky, not walking away from the fire.
+
+Tap the centred constellation to see whose it is and what he's set; tap a
+neighbour and it comes to the middle instead. Finishing one of your own goals
+brings your constellation round automatically so you actually see the ember
+land. The `?` button explains the metaphor to anyone who lands cold.
 
 ### Constellations
 
@@ -206,6 +219,9 @@ what it looks like, or for judging a change without a real crew.
 memory, so the sky, the dock, the member card and Manage crew all behave exactly
 as they do for real. It never touches Firebase, nothing is saved, and a reload
 puts it back to the same starting point. Sign out becomes **Exit demo**.
+
+In demo mode the sky object is exposed as `window.__sky`, so you can poke at it
+from the console — `__sky.step(1)`, `__sky.position()`.
 
 ## Managing the crew
 

@@ -316,7 +316,8 @@ function fireNewEmbers() {
     });
     if (!flying.size) state.pending.delete(l.uid);
 
-    if (l.uid !== state.user?.uid) toast(`${l.f3Name} hit it: ${l.goal.title}`);
+    if (l.uid === state.user?.uid) sky.focusMember(l.uid);   // watch your own land
+    else toast(`${l.f3Name} hit it: ${l.goal.title}`);
   }
 
   if (launches.length) refreshSky();
@@ -527,6 +528,12 @@ function enterCrew() {
       if (uid) showMemberCard(uid);
       else els.memberCard.hidden = true;
     });
+    // Swiping to a different man re-points an open card at him rather than
+    // leaving it showing somebody who's now off screen.
+    sky.on('focus', (uid) => {
+      if (uid && !els.memberCard.hidden) showMemberCard(uid);
+    });
+    if (isDemo()) window.__sky = sky;   // demo only, for poking at in the console
     dockObserver = new ResizeObserver(syncDockInset);
     dockObserver.observe(els.dock);
     syncDockInset();

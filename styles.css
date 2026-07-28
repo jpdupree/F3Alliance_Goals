@@ -30,7 +30,9 @@ body { overflow: hidden; }
   width: 100%;
   height: 100%;
   display: block;
-  touch-action: manipulation;
+  /* The canvas owns horizontal gestures — swiping moves along the crew. */
+  touch-action: none;
+  cursor: grab;
 }
 
 [hidden] { display: none !important; }
