@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#05070f" />
+<title>F3 Campfire — Goals</title>
+<link rel="stylesheet" href="styles.css" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔥</text></svg>" />
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+
+<!-- ── Top bar ───────────────────────────────────────────────── -->
+<header id="topbar" hidden>
+  <div class="brand">
+    <span class="flame">🔥</span>
+    <div>
+      <div class="crew-name" id="crewName">—</div>
+      <div class="crew-sub" id="crewSub">—</div>
+    </div>
+  </div>
+  <div class="top-actions">
+    <button class="btn ghost" id="shareBtn" title="Copy the crew link">Share<span class="wide-only">&nbsp;link</span></button>
+    <button class="btn ghost icon-only" id="helpBtn" title="How this works">?</button>
+    <button class="btn ghost" id="signOutBtn">Sign out</button>
+  </div>
+</header>
+
+<!-- ── Bottom dock ───────────────────────────────────────────── -->
+<section id="dock" hidden>
+  <div class="dock-handle" id="dockHandle"><span></span></div>
+
+  <div class="dock-body">
+    <div class="dock-head">
+      <div>
+        <h2 id="dockTitle">Your logs on the fire</h2>
+        <p class="dock-sub" id="dockSub">Every goal you set is a log. Hit it, and an ember takes its place in the sky.</p>
+      </div>
+      <div class="dock-tally" id="dockTally"></div>
+    </div>
+
+    <form id="goalForm" class="goal-form">
+      <input id="goalTitle" type="text" maxlength="80" placeholder="Set a goal — “Run 100 miles in August”" autocomplete="off" required />
+      <input id="goalTarget" type="text" maxlength="24" placeholder="Target (optional)" autocomplete="off" />
+      <button class="btn primary" type="submit">Add log</button>
+    </form>
+
+    <ul id="goalList" class="goal-list"></ul>
+    <p class="empty" id="goalEmpty">No logs yet. Throw the first one on the fire.</p>
+  </div>
+</section>
+
+<!-- ── Gate: sign-in / crew choice / F3 name ─────────────────── -->
+<div id="gate" class="gate">
+  <div class="gate-card" id="gateCard">
+    <div class="gate-flame">🔥</div>
+    <h1 id="gateTitle">F3 Campfire</h1>
+    <p class="gate-lede" id="gateLede">Set the goal. Feed the fire. Light your constellation.</p>
+
+    <!-- signed out -->
+    <div class="gate-step" data-step="signin" hidden>
+      <button class="btn google" id="googleBtn">
+        <svg viewBox="0 0 48 48" width="18" height="18" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6.1C12.3 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-2.7-.4-4H24v7.6h12.7c-.3 2.1-1.6 5.3-4.7 7.4l7.6 5.9c4.5-4.2 6.5-10.3 6.5-16.9z"/><path fill="#FBBC05" d="M10.4 28.7c-.5-1.4-.8-3-.8-4.7s.3-3.2.8-4.7l-7.8-6.1C1 16.3 0 20 0 24s1 7.7 2.6 10.8l7.8-6.1z"/><path fill="#34A853" d="M24 48c6.5 0 11.9-2.1 15.9-5.8l-7.6-5.9c-2 1.4-4.8 2.4-8.3 2.4-6.4 0-11.7-3.7-13.6-9.8l-7.8 6.1C6.5 42.6 14.6 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+      <p class="gate-fine">Google sign-in only. Your name and photo come from your Google account, and you can only edit your own goals.</p>
+    </div>
+
+    <!-- pick / create crew -->
+    <div class="gate-step" data-step="crew" hidden>
+      <p class="gate-fine">Start a campfire for your crew, or paste the link somebody sent you.</p>
+      <form id="crewForm">
+        <input id="crewInput" type="text" maxlength="40" placeholder="Crew name — “Alliance AO”" required />
+        <button class="btn primary block" type="submit">Light the fire</button>
+      </form>
+      <div class="or">or</div>
+      <button class="btn ghost block" id="rejoinBtn" hidden>Back to <span id="rejoinName">your crew</span></button>
+      <p class="gate-fine">Anybody with the link can join once they sign in with Google.</p>
+    </div>
+
+    <!-- f3 name -->
+    <div class="gate-step" data-step="name" hidden>
+      <p class="gate-fine">What do they call you out there? Your F3 name picks your constellation.</p>
+      <form id="nameForm">
+        <input id="nameInput" type="text" maxlength="28" placeholder="F3 name — “Crawdad”" required autocomplete="off" />
+        <div class="constellation-preview">
+          <canvas id="previewCanvas" width="320" height="200"></canvas>
+          <div class="preview-label" id="previewLabel">—</div>
+        </div>
+        <button class="btn primary block" type="submit">Take my place at the fire</button>
+      </form>
+    </div>
+
+    <!-- error / setup -->
+    <div class="gate-step" data-step="setup" hidden>
+      <p class="gate-error" id="setupMsg"></p>
+      <pre class="setup-code" id="setupCode" hidden></pre>
+    </div>
+
+    <div class="gate-loading" id="gateLoading" hidden><span class="spinner"></span></div>
+  </div>
+</div>
+
+<!-- ── Member card (click a constellation) ───────────────────── -->
+<div id="memberCard" class="member-card" hidden>
+  <button class="close" id="memberClose" aria-label="Close">×</button>
+  <div class="mc-head">
+    <img id="mcPhoto" alt="" width="40" height="40" />
+    <div>
+      <div class="mc-name" id="mcName">—</div>
+      <div class="mc-sub" id="mcSub">—</div>
+    </div>
+  </div>
+  <ul class="mc-goals" id="mcGoals"></ul>
+</div>
+
+<!-- ── Help ──────────────────────────────────────────────────── -->
+<div id="helpModal" class="modal" hidden>
+  <div class="modal-card">
+    <button class="close" id="helpClose" aria-label="Close">×</button>
+    <h2>How the fire works</h2>
+    <ul class="help-list">
+      <li><b>Every goal is a log.</b> Add one and it lands on the shared pile at the center of the fire.</li>
+      <li><b>Hit it and it burns.</b> Mark a goal achieved and an ember floats up out of the flames and locks into a star in your constellation.</li>
+      <li><b>Your constellation is yours.</b> It's picked from your F3 name — Crawdad gets a crawfish, Bulldozer gets something with more shoulders.</li>
+      <li><b>Finish everything you set</b> and the whole creature lights up over the fire.</li>
+      <li><b>The fire is the crew's.</b> The more the group knocks down over the season, the higher it burns.</li>
+    </ul>
+    <p class="help-fine">Anyone with the link can sign in and join. You can only add, edit, or delete your own goals — that's enforced on the server, not just in the page.</p>
+    <p class="help-fine">Tap a constellation to see whose it is. Tap the sky to pull back.</p>
+  </div>
+</div>
+
+<div id="toast" class="toast" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
