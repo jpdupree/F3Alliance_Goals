@@ -359,6 +359,8 @@ ol.help-list li { padding-left: 4px; }
   text-align: center;
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+/* The demo banner lives where the toast wants to be. */
+.is-demo .toast { top: calc(112px + env(safe-area-inset-top, 0px)); }
 
 @media (max-width: 560px) {
   .dock-sub { display: none; }

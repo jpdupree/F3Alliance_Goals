@@ -197,6 +197,15 @@ half-animal that still reads as an animal. Every built-in shape is checked to
 be one connected figure; a drawn shape with stars joined to nothing lights those
 last.
 
+**Nothing gives away the shape before you earn it.** A line is drawn only where
+both its stars are lit, so at three of ten you have a short connected run of
+stars and no idea yet whether it's a crawfish or a rocket. The figure resolves
+as you go, and the last few goals are the ones that close it.
+
+When the tenth star lands, a light runs along the whole figure in the order it
+was built (`edgeOrder()` gives each line the star-count it appeared at), then
+settles into the completed glow.
+
 That makes the season the same length for everybody. Complete means ten
 achievements — not "everything you happened to write down", which would have
 rewarded whoever set the fewest goals.

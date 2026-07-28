@@ -5,7 +5,7 @@
 // a few degrees as you swipe, so moving along the crew feels like turning to
 // look at a different part of the sky.
 
-import { shapeByKey } from './constellations.js';
+import { shapeByKey, edgeOrder } from './constellations.js';
 
 const PALETTE = [
   { h: 38,  s: 100, l: 68 },  // ember gold
@@ -126,10 +126,11 @@ export function createSky(canvas) {
     return { x: W / 2, y: TOP_INSET + (usableH() - TOP_INSET) * 0.90 };
   }
 
-  // The fire is the anchor of the scene, so its parts grow with the viewport
-  // instead of staying a fixed pixel size on a big monitor.
+  // The fire is the anchor of the scene, so its parts grow with the space it
+  // has — keyed to the *usable* height, so opening the dock banks it down
+  // instead of letting the flames climb into the caption.
   function fireScale() {
-    return clamp(Math.min(W, H) / 700, 0.85, 1.8);
+    return clamp(Math.min(W, usableH()) / 700, 0.7, 1.8);
   }
 
   // ── carousel layout ───────────────────────────────────────────────────
@@ -145,7 +146,11 @@ export function createSky(canvas) {
    * and a wide one, but never leaving a lake of empty sky on a phone.
    */
   function captionY() {
-    return slotCentreY() + slotSize() / 2 + clamp(W * 0.02, 18, 34);
+    const under = slotCentreY() + slotSize() / 2;
+    const wanted = under + clamp(W * 0.02, 18, 34);
+    // Never let it sit in the flames, but never above the constellation either.
+    const clearOfFire = fireOrigin().y - 140 * fireScale();
+    return clamp(wanted, under + 8, Math.max(clearOfFire, under + 8));
   }
 
   /** One constellation, as large as the screen sensibly allows. */
@@ -214,10 +219,14 @@ export function createSky(canvas) {
       const shape = m.customShape || shapeByKey(m.shapeKey);
       const tone = PALETTE[hashStr(m.uid + (m.shapeKey || '')) % PALETTE.length];
       const old = prev.get(m.uid);
+      // Newly finished — and only for a member we'd already drawn, so a whole
+      // crew doesn't sweep at once the first time the sky loads.
+      const justFinished = m.complete && old && !old.complete;
       return {
         ...m,
         shape,
         tone,
+        sweep: justFinished ? 0 : (old?.sweep ?? (m.complete ? 1 : undefined)),
         box: old?.box,
         points: old?.points,
         // per-star reveal progress, so a newly lit star swells in
@@ -671,22 +680,34 @@ export function createSky(canvas) {
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      // edges
-      for (const [a, b] of m.shape.edges) {
+      // Edges, only where both ends are lit. Nothing hints at the rest of the
+      // figure — the shape is a surprise until the stars that make it arrive.
+      if (m.sweep !== undefined && m.sweep < 1) {
+        m.sweep = Math.min(1, m.sweep + dt / 1.5);
+      }
+      const eo = edgeOrder(m.shape);
+      const sweeping = m.sweep !== undefined && m.sweep < 1;
+
+      m.shape.edges.forEach(([a, b], k) => {
         const pa = m.points[a], pb = m.points[b];
-        if (!pa || !pb) continue;
-        const ga = m.glow.get(a) ?? 0;
-        const gb = m.glow.get(b) ?? 0;
-        const strength = Math.min(ga, gb);
+        if (!pa || !pb) return;
+        const strength = Math.min(m.glow.get(a) ?? 0, m.glow.get(b) ?? 0);
+        if (strength <= 0.02) return;
+
+        // On completion a light runs along the figure in the order it was
+        // built, so the last goal reads as the thing resolving.
+        const wave = sweeping ? Math.exp(-(((m.sweep - (eo[k] ?? 0)) * 5.5) ** 2)) : 0;
+
         ctx.beginPath();
         ctx.moveTo(pa.x, pa.y);
         ctx.lineTo(pb.x, pb.y);
-        ctx.strokeStyle = strength > 0.02
-          ? col(0.14 + 0.44 * strength + m.pulse * 0.25)
-          : `rgba(190,205,235,${0.055 * dim})`;
-        ctx.lineWidth = strength > 0.02 ? 0.7 + 1.0 * strength : 0.6;
+        ctx.strokeStyle = col(
+          0.14 + 0.44 * strength + m.pulse * 0.25 + wave * 0.45,
+          tone.l + wave * 16,
+        );
+        ctx.lineWidth = 0.7 + 1.0 * strength + wave * 1.8;
         ctx.stroke();
-      }
+      });
 
       // stars
       for (let i = 0; i < m.points.length; i++) {

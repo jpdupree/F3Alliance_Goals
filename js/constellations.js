@@ -384,6 +384,34 @@ export function lightingOrder(shape) {
   return order;
 }
 
+/**
+ * Edges in the order they complete, as a star-count each: an edge appears the
+ * moment its later star lights. Used to run the completion sweep along the
+ * figure in the same order it was built.
+ */
+const edgeOrderCache = new WeakMap();
+
+export function edgeOrder(shape) {
+  const hit = edgeOrderCache.get(shape);
+  if (hit) return hit;
+
+  const order = lightingOrder(shape);
+  const step = new Array(shape.stars.length).fill(0);
+  order.forEach((starIndex, i) => { step[starIndex] = i; });
+
+  const out = shape.edges
+    .map((e, i) => ({ i, at: Math.max(step[e[0]] ?? 0, step[e[1]] ?? 0) }))
+    .sort((a, b) => a.at - b.at)
+    .map((x, rank, all) => ({ index: x.i, t: all.length > 1 ? rank / (all.length - 1) : 0 }));
+
+  // Keyed by edge index so the renderer can look up as it walks shape.edges.
+  const byEdge = new Array(shape.edges.length).fill(0);
+  for (const { index, t } of out) byEdge[index] = t;
+
+  edgeOrderCache.set(shape, byEdge);
+  return byEdge;
+}
+
 export function shapeByKey(key) {
   return SHAPES[key] || SHAPES[FALLBACK[0]];
 }
