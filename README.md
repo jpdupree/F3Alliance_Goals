@@ -23,6 +23,7 @@ js/data.js            auth + Firestore reads and writes
 js/constellations.js  the 25 shapes, and F3-name → shape matching
 js/sky.js             canvas renderer: fire, logs, embers, constellations
 js/app.js             app flow, state, and the goal list
+js/editor.js          connect-the-dots constellation editor
 firestore.rules       who can read and write what
 firebase.json         hosting + rules config for the Firebase CLI
 manifest.webmanifest  installable-app metadata
@@ -142,6 +143,26 @@ the same shape.
 
 To add a shape, add an entry to `SHAPES` (stars in a 0..1 box, edges between
 them, head at the top) and a row to `KEYWORDS`. Aim for 9–14 stars.
+
+### Drawing your own
+
+Anyone who doesn't like what his name picked can draw his own. There's a
+**…or draw your own constellation** link on the F3-name step, and an **Edit my
+constellation** button on your own card once you're in — tap a constellation
+in the sky to open it.
+
+The editor is connect-the-dots: tap empty sky to drop a star (it joins to
+whichever star was selected), tap a star to select it, tap a second to join or
+unjoin, drag to move. Undo, Remove star and Clear are there, plus an optional
+name for it ("the waffle") that shows under the constellation when it's fully
+lit. **Use the automatic one** reverts to the name-picked shape at any time.
+
+The drawing is normalized into the same 0..1 box the built-in shapes use, so
+the renderer treats it identically — same embers, same goal-to-star mapping,
+same completion. It's stored as `customShape` on your member doc, capped at 20
+stars and 40 lines both in the editor and in `firestore.rules`, and a shape
+that fails validation falls back to the automatic one rather than blanking out
+the sky.
 
 ### How goals map to stars
 

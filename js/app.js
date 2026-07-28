@@ -4,6 +4,7 @@
 import { isConfigured } from './config.js';
 import { createSky, starsForGoal } from './sky.js';
 import { constellationFor, shapeByKey } from './constellations.js';
+import { openDrawEditor, isValidShape } from './editor.js';
 
 const $ = (id) => document.getElementById(id);
 const els = {
@@ -18,6 +19,11 @@ const els = {
   dock: $('dock'), dockHandle: $('dockHandle'), dockTally: $('dockTally'),
   goalForm: $('goalForm'), goalTitle: $('goalTitle'), goalTarget: $('goalTarget'),
   goalList: $('goalList'), goalEmpty: $('goalEmpty'),
+  drawOwnBtn: $('drawOwnBtn'), mcEditShape: $('mcEditShape'),
+  drawModal: $('drawModal'), drawCanvas: $('drawCanvas'), drawTitle: $('drawTitle'),
+  drawCount: $('drawCount'), drawUndo: $('drawUndo'), drawRemove: $('drawRemove'),
+  drawClear: $('drawClear'), drawAuto: $('drawAuto'), drawSave: $('drawSave'),
+  drawClose: $('drawClose'), drawLabel: $('drawLabel'),
   installBtn: $('installBtn'), installModal: $('installModal'),
   installClose: $('installClose'), installLede: $('installLede'), installSteps: $('installSteps'),
   memberCard: $('memberCard'), memberClose: $('memberClose'),
@@ -39,6 +45,7 @@ const state = {
   achievedSeen: new Set(),  // goal ids already burned, so we don't re-fire embers
   pending: new Map(),       // uid → Set(starIndex) mid-flight, kept dark until arrival
   celebrated: new Set(),
+  pendingShape: null,       // drawn on the F3-name step, saved when he joins
 };
 
 let sky = null;
@@ -105,8 +112,10 @@ function drawPreview(f3Name) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
 
-  const c = constellationFor(f3Name);
-  els.previewLabel.textContent = f3Name.trim() ? c.label : '—';
+  const c = state.pendingShape || constellationFor(f3Name);
+  els.previewLabel.textContent = state.pendingShape
+    ? ((state.pendingShape.label || '').trim() || 'your own mark')
+    : (f3Name.trim() ? c.label : '—');
 
   const size = Math.min(w, h) * 0.82;
   const ox = (w - size) / 2;
@@ -131,6 +140,26 @@ function drawPreview(f3Name) {
     ctx.fillStyle = 'rgba(255,255,250,0.95)';
     ctx.beginPath(); ctx.arc(p.x, p.y, 1.8, 0, Math.PI * 2); ctx.fill();
   }
+}
+
+/**
+ * The shape a member is drawn with: his own drawing if he made one, otherwise
+ * the one his F3 name picked. Guards against a malformed stored shape so one
+ * bad document can't blank out the sky.
+ */
+function shapeFor(member) {
+  const custom = member?.customShape;
+  if (isValidShape(custom)) {
+    return {
+      stars: custom.stars,
+      edges: custom.edges,
+      label: (custom.label || '').trim() || 'his own mark',
+      custom: true,
+    };
+  }
+  const key = member?.shapeKey || constellationFor(member?.f3Name || '').key;
+  const s = shapeByKey(key);
+  return { stars: s.stars, edges: s.edges, label: s.label, custom: false, key };
 }
 
 // ── derive sky state from members + goals ──────────────────────────────────
@@ -169,8 +198,9 @@ function refreshSky() {
 
   const rows = state.members.map((m) => {
     const goals = byMember.get(m.uid) || [];
-    const shapeKey = m.shapeKey || constellationFor(m.f3Name).key;
-    const starCount = shapeByKey(shapeKey).stars.length;
+    const shape = shapeFor(m);
+    const shapeKey = shape.key || m.shapeKey || '';
+    const starCount = shape.stars.length;
     const done = goals.filter((g) => g.achieved).length;
     openLogs += goals.length - done;
     achieved += done;
@@ -180,11 +210,13 @@ function refreshSky() {
       f3Name: m.f3Name || m.displayName || 'Pax',
       photoURL: m.photoURL || '',
       shapeKey,
+      customShape: shape.custom ? { stars: shape.stars, edges: shape.edges, label: shape.label } : null,
       starCount,
       litStars: lit,
       complete: goals.length > 0 && done === goals.length && lit.size === starCount,
       goalsTotal: goals.length,
       goalsAchieved: done,
+      shapeLabel: shape.label,
       isMe: m.uid === state.user?.uid,
     };
   });
@@ -198,7 +230,7 @@ function refreshSky() {
     if (row.complete && !state.celebrated.has(row.uid)) {
       state.celebrated.add(row.uid);
       if (state.bootstrapped) {
-        toast(`${row.f3Name} finished the season — ${shapeByKey(row.shapeKey).label} is fully lit.`);
+        toast(`${row.f3Name} finished the season — ${row.shapeLabel} is fully lit.`);
       }
     } else if (!row.complete) {
       state.celebrated.delete(row.uid);
@@ -214,7 +246,7 @@ function fireNewEmbers() {
 
   for (const m of state.members) {
     const goals = byMember.get(m.uid) || [];
-    const starCount = shapeByKey(m.shapeKey || constellationFor(m.f3Name).key).stars.length;
+    const starCount = shapeFor(m).stars.length;
     goals.forEach((g, i) => {
       if (!g.achieved) return;
       nextSeen.add(g.id);
@@ -322,7 +354,7 @@ function showMemberCard(uid) {
     .filter((g) => g.uid === uid)
     .sort((a, b) => (a.order || 0) - (b.order || 0));
   const done = goals.filter((g) => g.achieved).length;
-  const shape = shapeByKey(m.shapeKey || constellationFor(m.f3Name).key);
+  const shape = shapeFor(m);
 
   els.mcName.textContent = m.f3Name || m.displayName || 'Pax';
   els.mcSub.textContent = goals.length
@@ -353,6 +385,7 @@ function showMemberCard(uid) {
     li.append(mark, txt);
     els.mcGoals.appendChild(li);
   }
+  els.mcEditShape.hidden = uid !== state.user?.uid;
   els.memberCard.hidden = false;
 }
 
@@ -540,7 +573,12 @@ els.nameForm.addEventListener('submit', async (e) => {
   if (!f3Name) return;
   showLoading();
   try {
-    await db.joinCrew(state.crewId, { f3Name, shapeKey: constellationFor(f3Name).key });
+    await db.joinCrew(state.crewId, {
+      f3Name,
+      shapeKey: constellationFor(f3Name).key,
+      customShape: state.pendingShape,
+    });
+    state.pendingShape = null;
     await attachCrew(state.crewId);   // now a member — roster and goals open up
   } catch (err) {
     fail(`Couldn’t join: ${errText(err)}`);
@@ -560,6 +598,45 @@ els.goalForm.addEventListener('submit', async (e) => {
     toast(errText(err));
     els.goalTitle.value = title;
     els.goalTarget.value = target;
+  }
+});
+
+// Draw one before joining: seeded with the automatic shape so nobody starts
+// from a blank canvas.
+els.drawOwnBtn.addEventListener('click', async () => {
+  const seed = state.pendingShape || constellationFor(els.nameInput.value || 'pax');
+  const result = await openDrawEditor(els, {
+    stars: seed.stars,
+    edges: seed.edges,
+    label: state.pendingShape?.label || '',
+    f3Name: els.nameInput.value.trim(),
+  });
+  if (result === null) return;
+  state.pendingShape = result === 'auto' ? null : result;
+  drawPreview(els.nameInput.value);
+  toast(result === 'auto' ? 'Back to the automatic constellation.' : 'Looking good. Take your place at the fire.');
+});
+
+// Redraw it later. Only ever your own — the button is hidden on anyone else's
+// card, and the rules reject a write to another man's member doc regardless.
+els.mcEditShape.addEventListener('click', async () => {
+  const me = state.members.find((m) => m.uid === state.user?.uid);
+  if (!me) return;
+  const current = shapeFor(me);
+  const result = await openDrawEditor(els, {
+    stars: current.stars,
+    edges: current.edges,
+    label: current.custom ? current.label : '',
+    f3Name: me.f3Name,
+  });
+  if (result === null) return;
+  try {
+    await db.saveConstellation(state.crewId, result === 'auto' ? null : result);
+    toast(result === 'auto'
+      ? `Back to ${shapeByKey(constellationFor(me.f3Name).key).label}.`
+      : 'Constellation saved.');
+  } catch (err) {
+    toast(errText(err));
   }
 });
 

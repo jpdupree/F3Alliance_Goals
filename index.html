@@ -102,6 +102,7 @@
         </div>
         <button class="btn primary block" type="submit">Take my place at the fire</button>
       </form>
+      <button class="btn ghost block draw-link" id="drawOwnBtn" type="button">…or draw your own constellation</button>
     </div>
 
     <!-- error / setup -->
@@ -125,6 +126,7 @@
     </div>
   </div>
   <ul class="mc-goals" id="mcGoals"></ul>
+  <button class="btn ghost small mc-edit" id="mcEditShape" type="button" hidden>Edit my constellation</button>
 </div>
 
 <!-- ── Help ──────────────────────────────────────────────────── -->
@@ -144,6 +146,32 @@
     <p class="help-fine">Hit <b>Install</b> up top to put the campfire on your home screen — it opens full screen and remembers your crew.</p>
     <div class="modal-foot">
       <button class="btn ghost" id="signOutBtn2">Sign out</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Constellation editor ──────────────────────────────────── -->
+<div id="drawModal" class="modal" hidden>
+  <div class="modal-card draw-card">
+    <button class="close" id="drawClose" aria-label="Close">×</button>
+    <h2 id="drawTitle">Draw your constellation</h2>
+    <p class="help-fine draw-hint">
+      Tap the sky to place a star — it joins to the one you had selected. Tap a
+      star to select it, tap a second to join or unjoin them, drag to move one.
+    </p>
+    <canvas id="drawCanvas"></canvas>
+    <div class="draw-bar">
+      <span class="draw-count" id="drawCount">0 stars</span>
+      <div class="draw-tools">
+        <button class="btn ghost small" id="drawUndo" type="button">Undo</button>
+        <button class="btn ghost small" id="drawRemove" type="button">Remove star</button>
+        <button class="btn ghost small" id="drawClear" type="button">Clear</button>
+      </div>
+    </div>
+    <input id="drawLabel" type="text" maxlength="24" placeholder="Call it something — “the crawfish” (optional)" autocomplete="off" />
+    <div class="draw-foot">
+      <button class="btn ghost" id="drawAuto" type="button">Use the automatic one</button>
+      <button class="btn primary" id="drawSave" type="button">Save constellation</button>
     </div>
   </div>
 </div>

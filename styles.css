@@ -372,3 +372,42 @@ ol.help-list li { padding-left: 4px; }
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+/* ── constellation editor ────────────────────────────────────────────── */
+.draw-card { width: min(520px, 100%); }
+.draw-hint { margin-top: 6px; }
+#drawCanvas {
+  width: 100%;
+  height: min(46vh, 340px);
+  display: block;
+  margin: 14px 0 10px;
+  border-radius: 12px;
+  border: 1px solid var(--panel-line);
+  background: #070b16;
+  touch-action: none;          /* dragging a star must not scroll the sheet */
+  cursor: crosshair;
+}
+.draw-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+}
+.draw-count { font-size: 12px; color: var(--ink-faint); }
+.draw-tools { display: flex; gap: 6px; flex-wrap: wrap; }
+#drawLabel {
+  font: inherit; font-size: 14px;
+  width: 100%; margin-top: 12px;
+  color: var(--ink);
+  background: rgba(255, 255, 255, .05);
+  border: 1px solid var(--panel-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+#drawLabel:focus { outline: none; border-color: rgba(255, 170, 90, .55); }
+#drawLabel::placeholder { color: var(--ink-faint); }
+.draw-foot {
+  display: flex; gap: 10px; justify-content: space-between;
+  margin-top: 14px; flex-wrap: wrap;
+}
+.draw-foot .btn { flex: 1 1 auto; }
+.draw-link { margin-top: 10px; font-size: 13px; }
+.mc-edit { width: 100%; margin-top: 12px; }

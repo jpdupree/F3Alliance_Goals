@@ -180,8 +180,9 @@ export function createSky(canvas) {
   function setState(nextMembers, nextStats) {
     const prev = new Map(members.map((m) => [m.uid, m]));
     members = nextMembers.map((m, i) => {
-      const shape = shapeByKey(m.shapeKey);
-      const tone = PALETTE[hashStr(m.uid + m.shapeKey) % PALETTE.length];
+      // A hand-drawn shape wins over the one picked from the F3 name.
+      const shape = m.customShape || shapeByKey(m.shapeKey);
+      const tone = PALETTE[hashStr(m.uid + (m.shapeKey || '')) % PALETTE.length];
       const old = prev.get(m.uid);
       return {
         ...m,

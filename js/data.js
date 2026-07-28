@@ -118,7 +118,7 @@ export async function getCrew(crewId) {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
 
-export function joinCrew(crewId, { f3Name, shapeKey }) {
+export function joinCrew(crewId, { f3Name, shapeKey, customShape }) {
   const user = auth.currentUser;
   if (!user) throw new Error('not signed in');
   return setDoc(
@@ -127,6 +127,7 @@ export function joinCrew(crewId, { f3Name, shapeKey }) {
       uid: user.uid,
       f3Name: f3Name.trim().slice(0, 28),
       shapeKey,
+      customShape: customShape || null,
       displayName: user.displayName || '',
       photoURL: user.photoURL || '',
       joinedAt: serverTimestamp(),
@@ -156,6 +157,15 @@ export function watchMembers(crewId, cb) {
 }
 
 // ── goals ─────────────────────────────────────────────────────────────────
+/** Save (or clear, with null) this member's hand-drawn constellation. */
+export function saveConstellation(crewId, customShape) {
+  const user = auth.currentUser;
+  if (!user) throw new Error('not signed in');
+  return updateDoc(doc(db, 'crews', crewId, 'members', user.uid), {
+    customShape: customShape || null,
+  });
+}
+
 export function watchGoals(crewId, cb) {
   return onSnapshot(
     query(collection(db, 'crews', crewId, 'goals'), orderBy('order', 'asc')),
